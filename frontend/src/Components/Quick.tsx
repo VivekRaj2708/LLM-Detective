@@ -56,8 +56,7 @@ const ACCENT_COLOR_PRIMARY = "#FF00FF";
 const ACCENT_COLOR_SECONDARY = "#00FFFF";
 // Muted Text Color
 const TEXT_COLOR_MUTED = "rgba(255, 255, 255, 0.8)";
-// Background Overlay
-const BACKGROUND_OVERLAY_DARK = "rgba(10, 10, 10, 0.8)";
+
 
 // Color mapping for AI detection categories (Kept as is, as they are classification-specific)
 const colorMap: Record<ColorKey, string> = {
@@ -89,7 +88,7 @@ const initialChunkCounts: ChunkCounts = {
 };
 
 // Styled component for the result pages - "Data Console Output"
-const PageBox = styled(Box)(({ theme }) => ({
+const PageBox = styled(Box)(() => ({
   margin: "25px 0",
   padding: "30px", // Larger padding for a cleaner look
   borderRadius: "1.5rem",
@@ -121,7 +120,6 @@ export default function AIDetectionDashboard() {
   const [scanProgress, setScanProgress] = useState(0);
   const [jumpInput, setJumpInput] = useState<string>("");
 
-  const [PercentageDenom, setPercentageDenom] = useState<number>(0);
 
   // State to track counts for percentage calculation
   const [chunkCounts, setChunkCounts] =
@@ -250,7 +248,6 @@ export default function AIDetectionDashboard() {
 
         const message = JSON.parse(event.data);
         if (message.hasOwnProperty("total pages")) {
-          setPercentageDenom(message["total pages"]); 
           return
         }
 
