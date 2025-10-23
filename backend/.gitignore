@@ -1,2 +1,3 @@
 uploads/
 credentials.json
+__pycache__/*
