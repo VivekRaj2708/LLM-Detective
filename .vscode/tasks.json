@@ -1,0 +1,59 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Jaeger",
+      "type": "shell",
+      "command": "jaeger-all-in-one",
+      "presentation": {
+        "panel": "dedicated",
+        "group": "servers",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Model API",
+      "type": "shell",
+      "command": "source /home/vivek/NLP/backend/venv/bin/activate && cd ./model && python3 API.py",
+      "presentation": {
+        "panel": "dedicated",
+        "group": "servers",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Backend",
+      "type": "shell",
+      "command": "source /home/vivek/NLP/backend/venv/bin/activate && cd ./backend && python3 Main.py",
+      "presentation": {
+        "panel": "dedicated",
+        "group": "servers",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Frontend",
+      "type": "shell",
+      "command": "cd ./frontend && npm run dev",
+      "presentation": {
+        "panel": "dedicated",
+        "group": "servers",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run All",
+      "dependsOn": [
+        "Run Jaeger",
+        "Run Model API",
+        "Run Backend",
+        "Run Frontend"
+      ],
+      "dependsOrder": "parallel"
+    }
+  ]
+}
