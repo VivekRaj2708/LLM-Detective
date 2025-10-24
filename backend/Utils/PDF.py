@@ -1,6 +1,10 @@
 import io
 import random
 import fitz  # PyMuPDF
+from opentelemetry.trace import Tracer
+
+from Utils.Group import GroupPara
+from Utils.Request import GetClass
 
 def highlight_sentences(pdf_input, pdf_output, highlights):
     """
@@ -58,6 +62,47 @@ def highlight_paragraphs(pdf_bytes: bytes) -> bytes:
     doc.close()
 
     return output_stream.getvalue()
+
+async def HighlightParagraphs(pdf_bytes: bytes, tracer: Tracer=None) -> bytes:
+    # Load PDF from bytes
+    doc = fitz.open("pdf", pdf_bytes)
+    colors = [
+        (1, 0, 0),   # red
+        (0, 1, 0),   # green
+        (0, 0, 1),   # blue
+        (1, 0, 1),   # magenta
+        (1, 1, 1)    # white
+    ]
+    data = []
+    for page in doc:
+        blocks = page.get_text("blocks")
+        chosen = [b for b in blocks if b[4].strip()]
+
+        if not chosen:
+            continue
+
+        grouped, paragraphs = GroupPara(chosen, minCount=50)
+        
+        if len(paragraphs) == 0:
+            continue
+        
+        
+        for j, p in enumerate(paragraphs):
+            class_name = await GetClass(p)
+            data.append((p, class_name))
+            # print("\n'" + class_name + "'")
+            for _, para in enumerate(grouped[j]):  # Just to simulate async call per paragraph
+                x0, y0, x1, y1, *_ = para
+                highlight = page.add_highlight_annot(fitz.Rect(x0, y0, x1, y1))
+                highlight.set_colors(stroke=colors[int(class_name) % len(colors)])
+                highlight.update()
+
+    output_stream = io.BytesIO()
+    doc.save(output_stream)
+    doc.close()
+
+    return output_stream.getvalue(), data
+
 
 if __name__ == "__main__":
     # --- Example Usage ---

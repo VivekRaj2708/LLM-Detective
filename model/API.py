@@ -11,7 +11,7 @@ async def get_random_number(request: Request):
     chars = data.get("chars", "")
 
     # You can use 'chars' here if you want to influence randomness later
-    result = random.randint(0, 4)
+    result = random.randint(0, 3)
 
     return JSONResponse({"input": chars, "result": result})
 

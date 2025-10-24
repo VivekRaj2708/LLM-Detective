@@ -33,7 +33,7 @@ from Utils.File import UPLOAD_DIR, extract_zip
 from reportlab.lib.colors import Color
 import re
 
-from Utils.PDF import highlight_paragraphs
+from Utils.PDF import HighlightParagraphs, highlight_paragraphs
 
 
 API_URL = "http://localhost:3344/api/get"
@@ -184,6 +184,38 @@ async def ocr_endpoint(request: Request):
 @app.get("/OCR", response_class=HTMLResponse)
 async def ocr_test(request: Request):
     return templates.TemplateResponse("OCR-Test.html", {"request": request})
+
+@app.post("/api/pdf/actual")
+async def pdf_actual(file: UploadFile = File(...)):
+    with tracer.start_as_current_span("pdf_actual_endpoint") as span:
+        span.set_attribute("http.request_type", "POST")
+        span.set_attribute("endpoint.path", "/api/pdf/actual")
+        span.set_attribute("file.name", file.filename)
+        
+        if not file.filename.endswith(".pdf"):
+            span.set_status(StatusCode.ERROR, description="Invalid file type")
+            return JSONResponse({"error": "File must be a PDF"}, status_code=400)
+
+        logger.info(f"Received PDF: {file.filename}")
+
+        try:
+            with tracer.start_as_current_span("read_pdf_bytes"):
+                pdf_bytes = await file.read()
+                span.add_event("PDF bytes read")
+            
+            with tracer.start_as_current_span("process_pdf_actual"):
+                highlighted_pdf, data = await HighlightParagraphs(pdf_bytes)
+                encoded_pdf = base64.b64encode(highlighted_pdf).decode("utf-8")
+                processed_data = {"message": "PDF processed successfully", "pdf_bytes": encoded_pdf, "data": data}
+                span.add_event("PDF processing complete")
+
+            return JSONResponse(processed_data)
+        
+        except Exception as e:
+            span.set_status(StatusCode.ERROR, description="PDF Actual Processing Failed")
+            span.record_exception(e)
+            span.set_attribute("error.message", str(e))
+            return JSONResponse({"error": "Internal server error during PDF processing", "msg": str(e)}, status_code=500)
 
 @app.post("/api/ocr/pdf")
 async def ocr_pdf(file: UploadFile = File(...)):
@@ -382,7 +414,7 @@ async def ocr_pdf_ws(websocket: WebSocket):
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse("PDF-Highlight.html", {"request": request})
+    return templates.TemplateResponse("Fin-PDF-High.html", {"request": request})
 
 @app.websocket("/ws/upload")
 async def websocket_upload(websocket: WebSocket):
