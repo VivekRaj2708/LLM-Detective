@@ -30,6 +30,8 @@ import type { ProjectRow } from "../Components/Dashboard";
 import AddToQueueIcon from "@mui/icons-material/AddToQueue";
 import QuickDetection from "../Components/Quick";
 import { useNavigate } from "react-router-dom";
+import TimelapseIcon from "@mui/icons-material/Timelapse";
+import AdvancedRun from "../Components/Advanced";
 
 const sampleProjects: ProjectRow[] = [
   {
@@ -76,6 +78,7 @@ const NAVIGATION: Navigation = [
   { segment: "dashboard", title: "Dashboard", icon: <DashboardIcon /> },
   { segment: "project", title: "New Project", icon: <AddToQueueIcon /> },
   { segment: "quick", title: "Quick File Check", icon: <RocketLaunchIcon /> },
+  { segment: "advanced", title: "Advanced Scan", icon: <TimelapseIcon /> },
 ];
 
 // ---- Theme ----
@@ -240,6 +243,7 @@ export default function Dashboard() {
               )}
               {pathname === "/project" && <Project />}
               {pathname === "/quick" && <QuickDetection />}
+              {pathname === "/advanced" && <AdvancedRun />}
             </DashboardLayout>
           </Box>
         </Box>
