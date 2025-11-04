@@ -486,7 +486,7 @@ async def websocket_upload(websocket: WebSocket):
 # Main Links
 @app.post("/api/login")
 async def login_user(payload: EmailInput):
-    return await login_route(payload, users_collection)
+    return await login_route(payload, users_collection, projects_collection)
 
 
 if __name__ == "__main__":

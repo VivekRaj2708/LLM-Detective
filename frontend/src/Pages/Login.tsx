@@ -10,6 +10,7 @@ import { login } from "../Store/Login";
 import { useNavigate } from "react-router-dom";
 import { LOGIN_API_URL } from "../Urls";
 import { setUser } from "../Store/User";
+import { setProjects } from "../Store/Projects";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -33,28 +34,39 @@ export default function LoginPage() {
       } else {
         console.log("Login successful:", user.email);
         setLoading(true);
-        const loginResponse = await fetch(LOGIN_API_URL)
-        if(loginResponse.status !== 200) {
+        const loginResponse = await fetch(LOGIN_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email: user.email }),
+        });
+        if (loginResponse.status !== 200) {
           setError("Server error during login. Please try again later.");
           setLoading(false);
           return;
         }
 
         const loginResponseData = await loginResponse.json();
-        if(!loginResponseData.token || !loginResponseData.user) {
+        if (
+          !loginResponseData.token ||
+          !loginResponseData.user ||
+          loginResponseData.projects === undefined
+        ) {
           setError("Server error during login. Please try again later.");
           setLoading(false);
           return;
         }
         dispatch(setUser(loginResponseData.user));
+        dispatch(setProjects(loginResponseData.projects));
         dispatch(
           login({
             name: user.displayName || "User",
             email: user.email,
-            JWTToken: loginResponseData.token
+            JWTToken: loginResponseData.token,
           })
         );
-        
+
         navigate("/dashboard");
         // window.location.href = "/dashboard";
       }

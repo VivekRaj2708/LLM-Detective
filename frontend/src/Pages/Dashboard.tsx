@@ -19,58 +19,19 @@ import {
 import type { Navigation, Router, Session } from "@toolpad/core/AppProvider";
 import { DemoProvider } from "@toolpad/core/internal";
 import logo from "../assets/logo-white.png";
-import { useDispatch } from "react-redux";
-import type { AppDispatch } from "../Store";
+import userPfp from "../assets/iitgn-logo.png";
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch, RootState } from "../Store";
 import { logout } from "../Store/Login";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import backdrop from "../assets/IITGN-evening.jpg";
 import DashboardPage from "../Components/Dashboard";
 import Project from "../Components/AddProject";
-import type { ProjectRow } from "../Components/Dashboard";
 import AddToQueueIcon from "@mui/icons-material/AddToQueue";
 import QuickDetection from "../Components/Quick";
 import { useNavigate } from "react-router-dom";
 import TimelapseIcon from "@mui/icons-material/Timelapse";
 import AdvancedRun from "../Components/Advanced";
-
-const sampleProjects: ProjectRow[] = [
-  {
-    id: "PROJ-001",
-    title: "Thesis Draft V1.2",
-    lastScanDate: "2024-10-20",
-    status: "Completed",
-  },
-  {
-    id: "PROJ-002",
-    title: "Research Paper: Quantum Physics",
-    lastScanDate: "2024-10-23",
-    status: "Scanning",
-  },
-  {
-    id: "PROJ-003",
-    title: "Internal Policy Document",
-    lastScanDate: "2024-10-15",
-    status: "Completed",
-  },
-  {
-    id: "PROJ-004",
-    title: "Client Report Q3 2024",
-    lastScanDate: "2024-10-10",
-    status: "Failed",
-  },
-  {
-    id: "PROJ-005",
-    title: "Marketing Content Batch",
-    lastScanDate: "2024-10-21",
-    status: "Completed",
-  },
-  {
-    id: "PROJ-006",
-    title: "Security Audit Documentation",
-    lastScanDate: "2024-09-28",
-    status: "Completed",
-  },
-];
 
 // ---- Navigation ----
 const NAVIGATION: Navigation = [
@@ -149,14 +110,14 @@ function SidebarFooterAccount({ mini }: SidebarFooterProps) {
   );
 }
 
-// ---- Demo Session ----
-const demoSession = { user };
-
 // ---- Dashboard Layout ----
 export default function Dashboard() {
   // const loggedIn = useSelector((state: RootState) => state.login.isLoggedIn);
   const loggedIn = true; // TODO:--- IGNORE ---
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
+  const name = useSelector((state: RootState) => state.user.name);
+  const email = useSelector((state: RootState) => state.user.email);
 
   const [pathname, setPathname] = React.useState("/dashboard");
   const router = React.useMemo<Router>(
@@ -174,11 +135,15 @@ export default function Dashboard() {
     }
   }, [loggedIn, navigate]);
 
-  const [session, setSession] = React.useState<Session | null>(demoSession);
+  const [session, setSession] = React.useState<Session | null>({
+    user: { name, email, image: userPfp },
+  });
   const authentication = React.useMemo(
     () => ({
-      signIn: () => setSession(demoSession),
-      signOut: () => setSession(null),
+      signIn: () => setSession({
+        user: { name, email, image: userPfp },
+      }),
+      signOut: () => dispatch(logout())
     }),
     []
   );
@@ -235,13 +200,7 @@ export default function Dashboard() {
               }}
             >
               {/* ✅ Page Switcher */}
-              {pathname === "/dashboard" && (
-                <DashboardPage
-                  projectHistory={sampleProjects}
-                  totalStorageGB={100}
-                  usedStorageGB={75}
-                />
-              )}
+              {pathname === "/dashboard" && <DashboardPage />}
               {pathname === "/project" && <Project />}
               {pathname === "/quick" && <QuickDetection />}
               {pathname === "/advanced" && <AdvancedRun />}

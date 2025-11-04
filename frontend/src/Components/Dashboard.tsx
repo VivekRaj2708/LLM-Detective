@@ -21,6 +21,10 @@ import DescriptionIcon from "@mui/icons-material/Description"; // Document/Proje
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch"; // Active Projects
 import CheckCircleIcon from "@mui/icons-material/CheckCircle"; // Completed
 import VisibilityIcon from "@mui/icons-material/Visibility"; // View Report
+import { useSelector } from "react-redux";
+import type { RootState } from "../Store";
+import { ProjectStoreToRow } from "../Utils/TypeCast";
+import noProject from "../assets/NoProject.svg";
 
 // --- NEW Data Interfaces ---
 
@@ -39,11 +43,12 @@ interface AIDashboardProps {
 
 // --- Utility Functions (Adapted) ---
 
-const statusColors = {
-  Completed: "success",
-  Scanning: "info",
-  Failed: "error",
-};
+const statusColors: Record<ProjectRow["status"], "success" | "info" | "error"> =
+  {
+    Completed: "success",
+    Scanning: "info",
+    Failed: "error",
+  };
 
 // Helper to calculate days ago (still useful for 'Last Scan Date')
 const getDaysAgo = (dateStr: string) => {
@@ -66,6 +71,41 @@ const formatDateWithSuffix = (dateStr: string) => {
 
   return `${day}${suffix} ${month} ${year}`;
 };
+
+const NoProjectsMessage = () => (
+  <Box
+    sx={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      height: "350px",
+      maxWidth: "1000px",
+      mx: "auto",
+      mt: 6,
+      borderRadius: "1rem",
+      backdropFilter: "blur(20px)",
+      background: "rgba(255,255,255,0.05)",
+      boxShadow: "0 8px 32px 0 rgba(0,0,0,0.25)",
+      color: "white",
+      textAlign: "center",
+      p: 4,
+    }}
+  >
+    <img
+      src={noProject}
+      alt="No Projects"
+      style={{ width: "200px", marginBottom: "20px", opacity: 0.7 }}
+    />
+    <Typography variant="h6">
+      No Projects Found
+    </Typography>
+    <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.6)", mb:5 }}>
+      You haven’t added any projects yet. Once you upload or create a project,
+      it will appear here.
+    </Typography>
+  </Box>
+);
 
 // --- Glass Card Component (Unchanged, looks great) ---
 
@@ -204,7 +244,10 @@ function AIDetectionDashboardCards({
           </Typography>
           {lastCompletedProject ? (
             <>
-              <Typography variant="h6" sx={{ color: "white", fontWeight: 600, fontSize: '1rem' }}>
+              <Typography
+                variant="h6"
+                sx={{ color: "white", fontWeight: 600, fontSize: "1rem" }}
+              >
                 {formatDateWithSuffix(lastCompletedProject.lastScanDate)}
               </Typography>
               <Typography sx={{ color: "gray.300" }}>
@@ -224,13 +267,14 @@ function AIDetectionDashboardCards({
 
 // --- Main Dashboard Component ---
 
-export default function AIDetectionDashboard({
-  projectHistory,
-  totalStorageGB,
-  usedStorageGB,
-}: AIDashboardProps) {
+export default function AIDetectionDashboard() {
   const [page, setPage] = useState(0);
   const rowsPerPage = 3; // Increased rows per page for a larger table
+
+  const usedStorageGB = useSelector((state: RootState) => state.user.storage);
+  const projectHistory = ProjectStoreToRow(
+    useSelector((state: RootState) => state.project.projects)
+  );
 
   const handleChangePage = (_: unknown, newPage: number) => setPage(newPage);
 
@@ -241,125 +285,126 @@ export default function AIDetectionDashboard({
         minHeight: "80vh",
       }}
     >
-
       {/* Cards */}
       <AIDetectionDashboardCards
         projectHistory={projectHistory}
-        totalStorageGB={totalStorageGB}
+        totalStorageGB={5}
         usedStorageGB={usedStorageGB}
       />
 
       {/* Project History Table */}
-      <TableContainer
-        component={Paper}
-        sx={{
-          borderRadius: "1rem",
-          marginTop: 6,
-          overflow: "hidden",
-          maxWidth: "1000px", // Set max width for better centering
-          mx: "auto",
-          backdropFilter: "blur(20px)",
-          background: "rgba(255,255,255,0.05)",
-          boxShadow: "0 8px 32px 0 rgba(0,0,0,0.25)",
-        }}
-      >
-        <Table>
-          <TableHead>
-            <TableRow>
-              {[
-                "Project ID",
-                "Title",
-                "Last Scan Date",
-                "Status",
-                "Actions",
-              ].map((head) => (
-                <TableCell
-                  key={head}
-                  align="center"
-                  sx={{
-                    color: "#00FFFF",
-                    fontWeight: 700,
-                    borderBottom: "1px solid rgba(255,255,255,0.2)",
-                  }}
-                >
-                  {head}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {projectHistory
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((row) => (
-                <TableRow
-                  key={row.id}
-                  hover
-                  sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-                >
-                  <TableCell align="center" sx={{ color: "white" }}>
-                    {row.id}
-                  </TableCell>
-                  <TableCell align="left" sx={{ color: "white" }}>
-                    {row.title}
-                  </TableCell>
-                  <TableCell align="center" sx={{ color: "white" }}>
-                    {formatDateWithSuffix(row.lastScanDate)}
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={row.status}
-                      color={statusColors[row.status] as any}
-                      icon={
-                        row.status === "Scanning" ? (
-                          <CircularProgress size={16} color="inherit" />
-                        ) : undefined
-                      }
-                      sx={{
-                        fontWeight: 600,
-                        letterSpacing: 0.5,
-                        backdropFilter: "blur(5px)",
-
-                        background: (theme) =>
-                          // @ts-expect-error as any is needed for dynamic color mapping
-                          `${theme.palette[statusColors[row.status]].light}1A`, // Light semi-transparent background
-                        color: (theme) =>
-                          // @ts-expect-error as any is needed for dynamic color mapping
-                          theme.palette[statusColors[row.status]].light,
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Tooltip title="View AI Detection Report">
-                      <IconButton
-                        onClick={() =>
-                          alert(`Viewing report for Project: ${row.title}`)
-                        }
-                        sx={{ color: "#FF00FF" }}
-                        disabled={row.status !== "Completed"}
-                      >
-                        <VisibilityIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))}
-          </TableBody>
-        </Table>
-        <TablePagination
-          component="div"
-          count={projectHistory.length}
-          page={page}
-          onPageChange={handleChangePage}
-          rowsPerPage={rowsPerPage}
-          rowsPerPageOptions={[]}
+      {projectHistory.length === 0 ? (
+        <NoProjectsMessage />
+      ) : (
+        <TableContainer
+          component={Paper}
           sx={{
-            "& .MuiTablePagination-actions": { color: "white" },
-            color: "white",
-            backgroundColor: "rgba(255,255,255,0.07)",
-            borderTop: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: "1rem",
+            marginTop: 6,
+            overflow: "hidden",
+            maxWidth: "1000px", // Set max width for better centering
+            mx: "auto",
+            backdropFilter: "blur(20px)",
+            background: "rgba(255,255,255,0.05)",
+            boxShadow: "0 8px 32px 0 rgba(0,0,0,0.25)",
           }}
-        />
-      </TableContainer>
+        >
+          <Table>
+            <TableHead>
+              <TableRow>
+                {[
+                  "Project ID",
+                  "Title",
+                  "Last Scan Date",
+                  "Status",
+                  "Actions",
+                ].map((head) => (
+                  <TableCell
+                    key={head}
+                    align="center"
+                    sx={{
+                      color: "#00FFFF",
+                      fontWeight: 700,
+                      borderBottom: "1px solid rgba(255,255,255,0.2)",
+                    }}
+                  >
+                    {head}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {projectHistory
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((row) => (
+                  <TableRow
+                    key={row.id}
+                    hover
+                    sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                  >
+                    <TableCell align="center" sx={{ color: "white" }}>
+                      {row.id}
+                    </TableCell>
+                    <TableCell align="left" sx={{ color: "white" }}>
+                      {row.title}
+                    </TableCell>
+                    <TableCell align="center" sx={{ color: "white" }}>
+                      {formatDateWithSuffix(row.lastScanDate)}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={row.status}
+                        color={statusColors[row.status]}
+                        icon={
+                          row.status === "Scanning" ? (
+                            <CircularProgress size={16} color="inherit" />
+                          ) : undefined
+                        }
+                        sx={{
+                          fontWeight: 600,
+                          letterSpacing: 0.5,
+                          backdropFilter: "blur(5px)",
+
+                          background: (theme) =>
+                            `${theme.palette[statusColors[row.status]].light}1A`, // Light semi-transparent background
+                          color: (theme) =>
+                            theme.palette[statusColors[row.status]].light,
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="View AI Detection Report">
+                        <IconButton
+                          onClick={() =>
+                            alert(`Viewing report for Project: ${row.title}`)
+                          }
+                          sx={{ color: "#FF00FF" }}
+                          disabled={row.status !== "Completed"}
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+          <TablePagination
+            component="div"
+            count={projectHistory.length}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
+            rowsPerPageOptions={[]}
+            sx={{
+              "& .MuiTablePagination-actions": { color: "white" },
+              color: "white",
+              backgroundColor: "rgba(255,255,255,0.07)",
+              borderTop: "1px solid rgba(255,255,255,0.1)",
+            }}
+          />
+        </TableContainer>
+      )}
 
       {/* Note: The user object and CertificateModal are now removed as they are no longer relevant */}
     </Box>

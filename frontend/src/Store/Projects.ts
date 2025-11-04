@@ -6,6 +6,7 @@ export interface ProjectModel {
   name: string;
   status: string; // default "active"
   documents: string[]; // array of document IDs
+  lastScanDate: string; // ISO string of last scan date, optional
 }
 
 interface ProjectState {
