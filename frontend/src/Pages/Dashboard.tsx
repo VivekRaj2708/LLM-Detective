@@ -19,8 +19,8 @@ import {
 import type { Navigation, Router, Session } from "@toolpad/core/AppProvider";
 import { DemoProvider } from "@toolpad/core/internal";
 import logo from "../assets/logo-white.png";
-import { useDispatch, useSelector } from "react-redux";
-import type { AppDispatch, RootState } from "../Store";
+import { useDispatch } from "react-redux";
+import type { AppDispatch } from "../Store";
 import { logout } from "../Store/Login";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import backdrop from "../assets/IITGN-evening.jpg";

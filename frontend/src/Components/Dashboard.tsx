@@ -16,11 +16,8 @@ import {
   Card,
   CardContent,
   CircularProgress,
-  LinearProgress,
 } from "@mui/material";
 import DescriptionIcon from "@mui/icons-material/Description"; // Document/Project Icon
-import HistoryIcon from "@mui/icons-material/History"; // Last Scan Date
-import StorageIcon from "@mui/icons-material/Storage"; // Storage Icon
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch"; // Active Projects
 import CheckCircleIcon from "@mui/icons-material/CheckCircle"; // Completed
 import VisibilityIcon from "@mui/icons-material/Visibility"; // View Report

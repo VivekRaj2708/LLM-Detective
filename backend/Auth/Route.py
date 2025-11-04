@@ -19,6 +19,7 @@ async def login_route(payload: EmailInput, users_collection: AsyncIOMotorCollect
         "id": str(user["_id"]),
         "name": user.get("name"),
         "email": user["email"],
+        "storage": user.get("storage", 0),
         "projects": user.get("projects", []),
     }
 

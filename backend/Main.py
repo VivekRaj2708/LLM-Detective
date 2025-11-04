@@ -39,7 +39,7 @@ from Utils.PDF import HighlightParagraphs, highlight_paragraphs
 from motor.motor_asyncio import AsyncIOMotorClient
 from Database.Credentials import MONGO_URL, MONGODB_DB_NAME
 from Auth.Route import EmailInput, login_route
-from motor.motor_asyncio import AsyncIOMotorCollection
+
 
 
 client = AsyncIOMotorClient(MONGO_URL)
@@ -485,7 +485,7 @@ async def websocket_upload(websocket: WebSocket):
 
 # Main Links
 @app.post("/api/login")
-async def login_user(payload: EmailInput, users_collection: AsyncIOMotorCollection):
+async def login_user(payload: EmailInput):
     return await login_route(payload, users_collection)
 
 

@@ -8,6 +8,8 @@ import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../Store";
 import { login } from "../Store/Login";
 import { useNavigate } from "react-router-dom";
+import { LOGIN_API_URL } from "../Urls";
+import { setUser } from "../Store/User";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -18,7 +20,6 @@ export default function LoginPage() {
   const dispatch = useDispatch<AppDispatch>();
 
   const handleClick = async () => {
-    setLoading(true);
     setError("");
     const provider = new GoogleAuthProvider();
 
@@ -31,12 +32,29 @@ export default function LoginPage() {
         await auth.signOut();
       } else {
         console.log("Login successful:", user.email);
+        setLoading(true);
+        const loginResponse = await fetch(LOGIN_API_URL)
+        if(loginResponse.status !== 200) {
+          setError("Server error during login. Please try again later.");
+          setLoading(false);
+          return;
+        }
+
+        const loginResponseData = await loginResponse.json();
+        if(!loginResponseData.token || !loginResponseData.user) {
+          setError("Server error during login. Please try again later.");
+          setLoading(false);
+          return;
+        }
+        dispatch(setUser(loginResponseData.user));
         dispatch(
           login({
             name: user.displayName || "User",
             email: user.email,
+            JWTToken: loginResponseData.token
           })
         );
+        
         navigate("/dashboard");
         // window.location.href = "/dashboard";
       }
