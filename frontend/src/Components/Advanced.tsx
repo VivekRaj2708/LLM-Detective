@@ -4,28 +4,28 @@ import {
   Typography,
   Button,
   LinearProgress,
-  Collapse,
-  Tooltip,
   CircularProgress,
-  Tab,
-  Tabs,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import { styled } from "@mui/system";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   ArcElement,
   Tooltip as ChartTooltip,
   Legend,
+  // Removed unused import { styled } from "@mui/system";
 } from "chart.js";
 
 // Register Chart.js components
 ChartJS.register(ArcElement, ChartTooltip, Legend);
 
-// --- TYPE DEFINITIONS & CONSTANTS (Adapted from Quick.tsx) ---
-type ColorKey = 0 | 1 | 2 | 3 | 4;
-type RawChunk = [string, ColorKey]; // Structure from API response: [text_chunk, class_key]
+// --- TYPE DEFINITIONS & CONSTANTS ---
+type ColorKey = 0 | 1 | 2 | 3 | 4 | 5;
+type RawChunk = [string, ColorKey];
 
 interface ChunkCounts {
   0: number;
@@ -33,24 +33,28 @@ interface ChunkCounts {
   2: number;
   3: number;
   4: number;
-  total: number;
+  5: number;
+  total: number; // Total weighted characters
 }
 
 // COSMIC AESTHETIC CONSTANTS
-const ACCENT_COLOR_PRIMARY = "#FF00FF";
-const ACCENT_COLOR_SECONDARY = "#00FFFF";
-const TEXT_COLOR_MUTED = "rgba(255, 255, 255, 0.8)";
+const ACCENT_COLOR_PRIMARY = "#FF00FF"; // Vibrant Magenta/Pink
+const ACCENT_COLOR_SECONDARY = "#00FFFF"; // Cool Cyan/Light Blue
+const TEXT_COLOR_MUTED = "rgba(255, 255, 255, 0.7)";
+const PANEL_WIDTH = 380;
+const API_ENDPOINT = "http://localhost:5000/api/pdf/actual";
 
-// Color mapping for AI detection categories (from Quick.tsx)
+// CONVERTED: Color map using hex codes derived from the user's requested RGB tuples
 const colorMap: Record<ColorKey, string> = {
-  0: "#ff4d4d", // AI (Red)
-  1: "#ffa64d", // Humanised (Orange)
-  2: "#33cc33", // Human (Green)
-  3: "#4da6ff", // Polished (Blue)
-  4: "#b366ff", // Cannot be determined (Purple)
+  0: "#FF9999", // (1.0, 0.6, 0.6) - Light Red - AI
+  1: "#99FF99", // (0.6, 1.0, 0.6) - Light Green - Humanised
+  2: "#9999FF", // (0.6, 0.6, 1.0) - Light Blue - Human
+  3: "#FFFF99", // (1.0, 1.0, 0.6) - Light Yellow - Polished
+  4: "#FFCC99", // (1.0, 0.8, 0.6) - Light Orange - Undetermined
+  5: "#CC99FF", // (0.8, 0.6, 1.0) - Light Purple - New Category
 };
 
-// Helper function to map ColorKey to a readable name (from Quick.tsx)
+// Helper function to map ColorKey to a readable name
 function colorKeyToName(key: ColorKey): string {
   switch (key) {
     case 0:
@@ -63,20 +67,48 @@ function colorKeyToName(key: ColorKey): string {
       return "Polished";
     case 4:
       return "Undetermined";
+    case 5:
+      return "New Category";
     default:
       return "Unknown";
   }
 }
 
-const crystalShardStyle: React.CSSProperties = {
-  backdropFilter: "blur(30px) saturate(180%)",
-  background: "rgba(30, 30, 30, 0.7)",
-  border: "1px solid rgba(255,255,255,0.15)",
-  borderRadius: "2rem",
-  boxShadow:
-    "0 10px 40px 0 rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.05)",
-  transition: "all 0.3s ease-in-out",
+// Styled Glass Shard Effect - Used for the main input panel and results panel
+const crystalShardStyle = {
+  backdropFilter: "blur(40px) saturate(200%)",
+  background: "rgba(15, 15, 25, 0.75)", // Darker, space-like glass background
+  border: "1px solid rgba(255,255,255,0.2)",
+  borderRadius: "1.5rem",
+  boxShadow: `0 0 50px 0 ${ACCENT_COLOR_PRIMARY}30, 0 10px 80px 0 rgba(0,0,0,0.8), inset 0 0 15px 1px rgba(255,255,255,0.05)`,
+  transition: "all 0.4s ease-in-out",
 };
+
+// Styled Drop Zone - Enhanced for extreme beauty and dynamic feedback
+const dropZoneStyle = (dragActive: boolean, selected: boolean) => ({
+  border: `3px dashed ${dragActive ? ACCENT_COLOR_SECONDARY : selected ? ACCENT_COLOR_PRIMARY : "rgba(255, 255, 255, 0.2)"}`,
+  borderRadius: "20px",
+  p: { xs: 6, md: 10 },
+  width: "100%",
+  textAlign: "center",
+  cursor: "pointer",
+  transition: "all 0.4s ease",
+  // Inner glass effect for the drop zone
+  backdropFilter: "blur(10px)",
+  background: dragActive
+    ? `rgba(0, 255, 255, 0.05)`
+    : "rgba(255, 255, 255, 0.03)",
+  // Subtle neon glow on hover/active states
+  boxShadow: dragActive
+    ? `0 0 30px ${ACCENT_COLOR_SECONDARY}AA`
+    : selected
+      ? `0 0 15px ${ACCENT_COLOR_PRIMARY}50`
+      : "none",
+  "&:hover": {
+    border: `3px dashed ${ACCENT_COLOR_SECONDARY}`,
+    boxShadow: `0 0 30px ${ACCENT_COLOR_SECONDARY}50`,
+  },
+});
 
 const initialChunkCounts: ChunkCounts = {
   0: 0,
@@ -84,71 +116,41 @@ const initialChunkCounts: ChunkCounts = {
   2: 0,
   3: 0,
   4: 0,
+  5: 0,
   total: 0,
 };
 
-// Styled component for the raw data console output
-const DataConsoleBox = styled(Box)(() => ({
-  height: "60vh",
-  overflowY: "auto",
-  padding: "30px",
-  borderRadius: "1.5rem",
-  background: "rgba(40, 40, 40, 0.7)",
-  border: "1px solid rgba(255, 255, 255, 0.1)",
-  boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
-  lineHeight: 1.8,
-  fontFamily: '"Consolas", "Courier New", monospace',
-  fontSize: "0.95rem",
-  whiteSpace: "pre-wrap",
-}));
+// --- Advanced Component ---
 
-// --- AI Detection API Dashboard Component ---
-
-export default function AdvancedScan() {
+export default function Advanced() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [status, setStatus] = useState("Select a PDF file to begin.");
+  const [status, setStatus] = useState("Awaiting PDF for analysis.");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isChartOpen, setIsChartOpen] = useState(false);
+  const [isChartOpen, setIsChartOpen] = useState(true);
 
   // API Results
   const [processedPdfBase64, setProcessedPdfBase64] = useState<string | null>(
     null
   );
-  const [rawClassificationData, setRawClassificationData] = useState<
-    RawChunk[]
-  >([]);
-
   const [chunkCounts, setChunkCounts] =
     useState<ChunkCounts>(initialChunkCounts);
-  const [outputTab, setOutputTab] = useState(0); // 0: PDF Viewer, 1: Raw Data
 
-  // Calculate percentages for the legend and chart dynamically
-  const percentages = useMemo<Record<ColorKey, string>>(() => {
-    if (chunkCounts.total === 0) {
-      return { 0: "0.0", 1: "0.0", 2: "0.0", 3: "0.0", 4: "0.0" };
-    }
-    return (Object.keys(colorMap) as unknown as ColorKey[]).reduce(
-      (acc, key) => {
-        acc[key] = ((chunkCounts[key] / chunkCounts.total) * 100).toFixed(1);
-        return acc;
-      },
-      {} as Record<ColorKey, string>
-    );
-  }, [chunkCounts]);
+  // Chart data and percentage calculation
+  const { chartData, percentageData } = useMemo(() => {
+    const counts = chunkCounts;
+    const total = counts.total;
+    const keys = Object.keys(colorMap) as unknown as (keyof typeof colorMap)[];
 
-  // Chart data calculation
-  const chartData = useMemo(() => {
-    const labels = (Object.keys(colorMap) as unknown as ColorKey[]).map((key) =>
-      colorKeyToName(key)
+    const labels = keys.map((keyStr) =>
+      colorKeyToName(parseInt(keyStr.toString(), 10) as ColorKey)
     );
-    // Use raw counts for chart data, as Chart.js prefers numbers, not fixed strings
-    const dataValues = (Object.keys(colorMap) as unknown as ColorKey[]).map(
-      (key) => chunkCounts[key]
+    const dataValues = keys.map(
+      (key) => counts[parseInt(key.toString(), 10) as ColorKey]
     );
     const backgroundColors = Object.values(colorMap);
 
-    return {
+    const chartData = {
       labels: labels,
       datasets: [
         {
@@ -159,69 +161,63 @@ export default function AdvancedScan() {
         },
       ],
     };
+
+    const percentageData: Record<ColorKey, string> = keys.reduce(
+      (acc, keyStr) => {
+        const key = parseInt(keyStr.toString(), 10) as ColorKey;
+        acc[key] = (total === 0 ? 0.0 : (counts[key] / total) * 100).toFixed(1);
+        return acc;
+      },
+      {} as Record<ColorKey, string>
+    );
+
+    return { chartData, percentageData };
   }, [chunkCounts]);
 
-  // Chart options for cosmic aesthetic
+  // Chart options
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: "right" as const,
-        labels: {
-          color: TEXT_COLOR_MUTED,
-          font: {
-            size: 14,
-            family: '"Poppins", sans-serif',
-          },
-        },
-      },
+      legend: { display: false },
       title: {
         display: true,
-        text: "AI Classification Distribution (Weighted by Text Length)",
-        color: ACCENT_COLOR_PRIMARY,
-        font: {
-          size: 20,
-          weight: "700",
-          family: '"Poppins", sans-serif',
-        },
-        padding: {
-          top: 10,
-          bottom: 30,
-        },
+        text: "Classification Distribution",
+        color: ACCENT_COLOR_SECONDARY,
+        font: { size: 18, weight: "700", family: '"Poppins", sans-serif' },
+        padding: { top: 0, bottom: 15 },
       },
       tooltip: {
-        backgroundColor: "rgba(30, 30, 30, 0.8)",
-        titleColor: ACCENT_COLOR_SECONDARY,
+        backgroundColor: "rgba(30, 30, 30, 0.9)",
+        titleColor: ACCENT_COLOR_PRIMARY,
         bodyColor: TEXT_COLOR_MUTED,
-        borderColor: ACCENT_COLOR_PRIMARY,
+        borderColor: ACCENT_COLOR_SECONDARY,
         borderWidth: 1,
         callbacks: {
-            // Customize tooltip to show percentage
-            label: function(context: any) {
-                const label = context.label || '';
-                const value = context.parsed;
-                const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
-                return `${label}: ${value} (Weight) | ${percentage}%`;
-            }
-        }
+          label: function (context: any) {
+            const label = context.label || "";
+            const value = context.parsed;
+            const total = context.dataset.data.reduce(
+              (a: number, b: number) => a + b,
+              0
+            );
+            const percentage =
+              total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+            return `${label}: ${value.toLocaleString()} (Weight) | ${percentage}%`;
+          },
+        },
       },
     },
   };
 
-  // --- File Handling Logic ---
-
+  // --- File Handling and API Logic (remains the same) ---
   const handleFileChange = useCallback((file: File) => {
     if (file && file.type === "application/pdf") {
       setSelectedFile(file);
-      setStatus(`Selected file: ${file.name}`);
-      setIsChartOpen(false);
-      setProcessedPdfBase64(null); // Clear previous results
-      setRawClassificationData([]);
+      setStatus(`Selected: ${file.name}. Ready for analysis.`);
+      setProcessedPdfBase64(null);
       setChunkCounts(initialChunkCounts);
     } else {
-      console.error("Invalid file type. Please select a PDF.");
       setSelectedFile(null);
       setStatus("Error: Invalid file type. Please select a PDF.");
     }
@@ -248,64 +244,66 @@ export default function AdvancedScan() {
     }
   }, []);
 
-  // --- API Call Logic ---
-
   const handleStartAnalysis = useCallback(async () => {
-    if (!selectedFile) {
-      setStatus("Error: Please select a PDF file first.");
-      return;
-    }
+    if (!selectedFile) return;
 
     setIsProcessing(true);
     setProcessedPdfBase64(null);
-    setRawClassificationData([]);
     setChunkCounts(initialChunkCounts);
-    setStatus(`Uploading and analyzing "${selectedFile.name}"...`);
-    setIsChartOpen(false);
+    setStatus(
+      `Uploading and analyzing "${selectedFile.name}" via ${API_ENDPOINT}...`
+    );
+    setIsChartOpen(true);
 
     const formData = new FormData();
     formData.append("file", selectedFile);
 
     try {
-      const response = await fetch("http://localhost:5000/api/pdf/actual", {
+      const response = await fetch(API_ENDPOINT, {
         method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ msg: response.statusText }));
-        throw new Error(`API Error ${response.status}: ${errorData.msg || response.statusText}`);
+        const errorData = await response
+          .json()
+          .catch(() => ({ msg: response.statusText }));
+        throw new Error(
+          `API Error ${response.status}: ${errorData.msg || response.statusText}`
+        );
       }
 
       const result = await response.json();
-      
       const { pdf_bytes, data } = result;
 
-      if (!pdf_bytes || !data) {
-          throw new Error("Invalid response structure from API. Missing pdf_bytes or data.");
+      if (!pdf_bytes || !Array.isArray(data)) {
+        throw new Error(
+          "Invalid response structure from API. Missing 'pdf_bytes' or 'data'."
+        );
       }
-      
-      // 1. Process Classification Data (Weighted by text length, as in Fin-PDF-High.html)
+
+      // Process Classification Data (Weighted by text length)
       let counts: ChunkCounts = { ...initialChunkCounts };
-      for (const [text, classKey] of data as RawChunk[]) {
-          const weight = text.length; // Using length for weight
-          if (classKey in counts) {
-              counts[classKey as ColorKey] += weight;
-              counts.total += weight;
-          }
+      for (const item of data as RawChunk[]) {
+        const [text, classKey] = item;
+        const weight = text.length;
+        if (classKey in colorMap) {
+          counts[classKey as ColorKey] += weight;
+          counts.total += weight;
+        }
       }
 
-      // 2. Set Results
+      // Set Results
       setProcessedPdfBase64(pdf_bytes);
-      setRawClassificationData(data);
       setChunkCounts(counts);
-
-      setStatus(result.message || "Analysis complete. Results displayed below.");
-      setOutputTab(0); // Switch to PDF View
-
+      setStatus(
+        result.message || `Analysis complete. Document: ${selectedFile.name}`
+      );
     } catch (error) {
       console.error("Analysis Failed:", error);
-      setStatus(`Analysis Failed: ${error instanceof Error ? error.message : "Network error"}`);
+      setStatus(
+        `Analysis Failed: ${error instanceof Error ? error.message : "Network error"}. Check console and API server.`
+      );
       setProcessedPdfBase64(null);
     } finally {
       setIsProcessing(false);
@@ -314,485 +312,429 @@ export default function AdvancedScan() {
 
   // --- Render Functions ---
 
-  const renderRawDataConsole = () => (
-    <DataConsoleBox>
-      <Typography
-        component="strong"
-        sx={{
-          color: ACCENT_COLOR_SECONDARY,
-          mb: 2,
-          fontSize: "1.2rem",
-          display: "block",
-          borderBottom: `1px solid rgba(255, 255, 255, 0.1)`,
-          p: 1,
-        }}
-      >
-        [ RAW CLASSIFICATION CHUNKS (Total Chunks: {rawClassificationData.length}) ]
-      </Typography>
-      <Box component="p" sx={{ margin: 0, whiteSpace: "pre-wrap" }}>
-        {rawClassificationData.map(([text, colorKey], chunkIndex) => (
-          <Tooltip
-            key={chunkIndex}
-            title={
-              <Typography
-                variant="caption"
-                sx={{ fontSize: "0.8rem", fontWeight: 600 }}
-              >
-                {`CLASSIFICATION: ${colorKeyToName(colorKey)} (Weight: ${text.length} chars)`}
-              </Typography>
-            }
-            arrow
-            placement="top"
-            componentsProps={{
-              tooltip: {
-                sx: {
-                  backgroundColor: colorMap[colorKey] || "#fff",
-                  color: colorKey === 2 ? "black" : "white",
-                  borderRadius: "8px",
-                  padding: "8px 12px",
-                  boxShadow: "0 4px 10px rgba(0,0,0,0.4)",
-                  backdropFilter: "blur(5px)",
-                },
-              },
-            }}
-          >
-            <Box
-              component="span"
-              sx={{
-                textDecoration: `underline solid ${colorMap[colorKey] || "#fff"}`,
-                textDecorationThickness: "2.5px",
-                textUnderlineOffset: "4px",
-                marginRight: "4px",
-                color: TEXT_COLOR_MUTED,
-                transition: "color 0.2s ease",
-                textDecorationColor: colorMap[colorKey] || "#fff",
-                cursor: "help",
-                "&:hover": {
-                  color: colorMap[colorKey],
-                },
-              }}
-            >
-              {text}
-            </Box>
-          </Tooltip>
-        ))}
-      </Box>
-    </DataConsoleBox>
-  );
-  
-  const renderPdfViewer = () => (
-    <Box
-        component="iframe"
-        id="pdfViewer"
-        title="Processed PDF"
-        src={processedPdfBase64 ? `data:application/pdf;base64,${processedPdfBase64}` : ''}
-        sx={{
-            width: "100%",
-            height: "60vh",
-            borderRadius: "1.5rem",
-            border: `1px solid ${ACCENT_COLOR_SECONDARY}40`,
-            backgroundColor: "rgba(40, 40, 40, 0.9)",
-            boxShadow: `0 0 15px ${ACCENT_COLOR_SECONDARY}30`,
-        }}
-    />
-  );
-
-
-  return (
+  const renderInputShard = () => (
+    // Main background container (Transparent to show body background)
     <Box
       sx={{
-        minHeight: "100vh",
-        width: "100%",
-        background: "transparent",
-        color: "#fff",
-        fontFamily: '"Poppins", sans-serif',
-        padding: { xs: 2, md: 5 },
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
         display: "flex",
-        flexDirection: "column",
+        justifyContent: "center",
         alignItems: "center",
-        position: "relative",
+        zIndex: 100,
+        backgroundColor: "transparent", // Ensure transparency for the dramatic effect
+        m: "auto",
       }}
     >
-      {/* --- Main Crystal Shard Container (Input & Controls) --- */}
+      {/* Input Shard Panel (Glassmorphism effect) */}
       <Box
         sx={{
           ...crystalShardStyle,
           width: "100%",
-          maxWidth: 1000,
-          p: { xs: 4, md: 6 },
-          mb: 5,
+          maxWidth: 800,
+          p: { xs: 4, md: 8 },
+          m: "auto",
+          justifyContent: "center",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
         }}
       >
-        <Typography
-          variant="h4"
-          component="h1"
-          sx={{
-            color: ACCENT_COLOR_PRIMARY,
-            fontWeight: 800,
-            mb: 4,
-            textShadow: `0 0 10px ${ACCENT_COLOR_PRIMARY}80`,
-          }}
-        >
-          API Document Analysis System - `/api/pdf/actual`
-        </Typography>
-
-        {/* Drag and Drop Area */}
+        {/* Drag and Drop Area (Enhanced Glassmorphism) */}
         <Box
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
           onClick={() => document.getElementById("file-upload-input")?.click()}
-          sx={{
-            border: `2px dashed ${
-              dragActive ? ACCENT_COLOR_PRIMARY : "rgba(255, 255, 255, 0.2)"
-            }`,
-            borderRadius: "15px",
-            p: { xs: 5, md: 8 },
-            width: "100%",
-            textAlign: "center",
-            cursor: "pointer",
-            transition:
-              "border 0.3s ease, background 0.3s ease, box-shadow 0.3s ease",
-            backgroundColor: dragActive
-              ? "rgba(255,0,255,0.1)"
-              : "rgba(0, 0, 0, 0.2)",
-            "&:hover": {
-              border: `2px dashed ${ACCENT_COLOR_PRIMARY}`,
-              boxShadow: `0 0 15px ${ACCENT_COLOR_PRIMARY}50`,
-            },
-          }}
+          sx={dropZoneStyle(dragActive, !!selectedFile)}
+          margin={"auto"}
         >
           <input
             type="file"
             id="file-upload-input"
             accept="application/pdf"
             onChange={(e) => {
-              if (e.target.files?.[0]) {
-                handleFileChange(e.target.files[0]);
-              }
+              if (e.target.files?.[0]) handleFileChange(e.target.files[0]);
             }}
             style={{ display: "none" }}
           />
-          <Box id="file-placeholder">
-            {selectedFile ? (
-              <Box>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="50"
-                  height="50"
-                  fill={ACCENT_COLOR_PRIMARY}
-                  viewBox="0 0 16 16"
-                  style={{ display: "block", margin: "0 auto" }}
-                >
-                  <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3.5V1h4v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5z" />
-                </svg>
-                <Typography
-                  sx={{
-                    display: "block",
-                    fontSize: "20px",
-                    mt: 2,
-                    color: ACCENT_COLOR_PRIMARY,
-                    fontWeight: 600,
-                  }}
-                >
-                  {selectedFile.name.length > 20
-                    ? selectedFile.name.substring(0, 20) +
-                      "###." +
-                      selectedFile.name.split(".").pop()
-                    : selectedFile.name}
-                </Typography>
-                <Typography
-                  sx={{ color: TEXT_COLOR_MUTED, fontSize: "14px", mt: 0.5 }}
-                >
-                  Ready for analysis. Click 'Start' below.
-                </Typography>
-              </Box>
-            ) : (
-              <Box>
-                <CloudUploadIcon
-                  sx={{ fontSize: 50, color: "rgba(255, 255, 255, 0.5)" }}
-                />
-                <Typography
-                  sx={{
-                    display: "block",
-                    fontSize: "20px",
-                    mt: 2,
-                    fontWeight: 500,
-                  }}
-                >
-                  Drag & Drop PDF File
-                </Typography>
-                <Typography
-                  sx={{
-                    display: "block",
-                    fontSize: "14px",
-                    color: TEXT_COLOR_MUTED,
-                  }}
-                >
-                  or Click to Open File Browser
-                </Typography>
-              </Box>
-            )}
+          <Box>
+            <CloudUploadIcon
+              sx={{
+                fontSize: 80,
+                color: selectedFile
+                  ? ACCENT_COLOR_PRIMARY
+                  : ACCENT_COLOR_SECONDARY,
+                mb: 2,
+                // Iconic neon glow
+                textShadow: `0 0 10px ${ACCENT_COLOR_SECONDARY}, 0 0 20px ${ACCENT_COLOR_SECONDARY}80`,
+              }}
+            />
+            <Typography
+              sx={{
+                fontSize: "28px",
+                mt: 1,
+                fontWeight: 700,
+                color: selectedFile
+                  ? ACCENT_COLOR_PRIMARY
+                  : ACCENT_COLOR_SECONDARY,
+              }}
+            >
+              {selectedFile
+                ? `File Selected: ${selectedFile.name}`
+                : "DRAG & DROP PDF OR CLICK"}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: "18px",
+                color: TEXT_COLOR_MUTED,
+                mt: 0.5,
+                letterSpacing: 1,
+              }}
+            >
+              {selectedFile
+                ? "INITIATE ANALYSIS SEQUENCE BELOW."
+                : "PDF Data Upload (Max 10MB)"}
+            </Typography>
           </Box>
         </Box>
 
-        {/* Start Button */}
-        <Box sx={{ display: "flex", gap: 2, mt: 4 }}>
-          <Button
-            id="startBtn"
-            onClick={handleStartAnalysis}
-            disabled={!selectedFile || isProcessing}
-            variant="contained"
-            sx={{
-              background: ACCENT_COLOR_PRIMARY,
-              border: "none",
-              padding: "12px 40px",
-              borderRadius: "15px",
-              color: "black",
-              fontWeight: 700,
-              cursor: "pointer",
-              transition: "all 0.3s ease",
-              boxShadow: `0 0 15px ${ACCENT_COLOR_PRIMARY}80`,
-              "&:hover": {
-                background: ACCENT_COLOR_SECONDARY,
-                boxShadow: `0 0 25px ${ACCENT_COLOR_SECONDARY}FF`,
-                transform: "translateY(-2px)",
-              },
-              "&:disabled": {
-                background: "rgba(255, 255, 255, 0.1)",
-                color: "rgba(255, 255, 255, 0.5)",
-                boxShadow: "none",
-              },
-            }}
-          >
-            {isProcessing ? (
-              <CircularProgress size={24} sx={{ color: "black" }} />
-            ) : (
-              "ACTIVATE ANALYSIS"
-            )}
-          </Button>
-        </Box>
+        {/* Start Button (Hyper-accented) */}
+        <Button
+          onClick={handleStartAnalysis}
+          disabled={!selectedFile || isProcessing}
+          variant="contained"
+          sx={{
+            mt: 5,
+            background: ACCENT_COLOR_PRIMARY,
+            padding: "18px 60px",
+            borderRadius: "10px",
+            color: "black",
+            fontWeight: 900,
+            minWidth: 320,
+            fontSize: "1.1rem",
+            // Extreme neon button glow
+            boxShadow: `0 0 30px ${ACCENT_COLOR_PRIMARY}FF, 0 0 60px ${ACCENT_COLOR_PRIMARY}60`,
+            "&:hover": {
+              background: ACCENT_COLOR_SECONDARY,
+              boxShadow: `0 0 40px ${ACCENT_COLOR_SECONDARY}FF, 0 0 80px ${ACCENT_COLOR_SECONDARY}60`,
+              transform: "scale(1.02)",
+            },
+            "&:disabled": {
+              background: "rgba(255, 255, 255, 0.1)",
+              color: "rgba(255, 255, 255, 0.5)",
+              boxShadow: "none",
+            },
+          }}
+        >
+          {isProcessing ? (
+            <CircularProgress size={24} sx={{ color: "black" }} />
+          ) : (
+            "ACTIVATE ANALYSIS SEQUENCE"
+          )}
+        </Button>
 
-        {/* --- Status & Progress --- */}
-        <Box sx={{ mt: 5, width: "100%" }}>
+        {/* Status & Progress Bar (Holographic Status) */}
+        <Box
+          sx={{
+            mt: 5,
+            width: "100%",
+            maxWidth: 500,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
           <Typography
             component="p"
             sx={{
-              margin: "10px 0",
               color: isProcessing ? ACCENT_COLOR_SECONDARY : TEXT_COLOR_MUTED,
-              fontWeight: 500,
+              fontWeight: 600,
+              textAlign: "center",
+              mb: 1,
             }}
           >
-            SYSTEM STATUS: {status}
+            SYSTEM LOG: {status}
           </Typography>
-
           {isProcessing && (
-            <Box sx={{ width: "100%", mb: 3 }}>
-              {/* Using indeterminate progress for a single blocking API call */}
-              <LinearProgress
-                sx={{
-                  height: 12,
-                  borderRadius: 6,
-                  backgroundColor: "rgba(255, 255, 255, 0.1)",
-                  boxShadow: "inset 0 1px 3px rgba(0,0,0,0.5)",
-                  "& .MuiLinearProgress-bar": {
-                    backgroundColor: ACCENT_COLOR_PRIMARY,
-                    boxShadow: `0 0 8px ${ACCENT_COLOR_PRIMARY}80`,
-                  },
-                }}
-              />
-              <Typography
-                variant="body2"
-                color={ACCENT_COLOR_PRIMARY}
-                sx={{ mt: 1, textAlign: "right", fontWeight: 700 }}
-              >
-                Processing data, please wait...
-              </Typography>
-            </Box>
+            <LinearProgress
+              sx={{
+                height: 12,
+                borderRadius: 6,
+                width: "100%",
+                mt: 1,
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                "& .MuiLinearProgress-bar": {
+                  backgroundColor: ACCENT_COLOR_PRIMARY,
+                  boxShadow: `0 0 10px ${ACCENT_COLOR_PRIMARY}FF`,
+                },
+              }}
+            />
           )}
         </Box>
       </Box>
+    </Box>
+  );
 
-      {/* --- Results Section (Only displays after API success) --- */}
-      {processedPdfBase64 && (
-        <Box sx={{ width: "100%", maxWidth: 1000, mb: 5 }}>
-          {/* Collapsible Chart Section */}
-          <Box sx={{ mb: 4, width: "100%" }}>
-            <Button
-              onClick={() => setIsChartOpen((prev) => !prev)}
-              variant="outlined"
-              sx={{
-                width: "100%",
-                mt: 2,
-                mb: 2,
-                padding: "10px 20px",
-                color: ACCENT_COLOR_PRIMARY,
-                borderColor: ACCENT_COLOR_PRIMARY,
-                fontWeight: 700,
-                borderRadius: "10px",
-                transition: "all 0.3s ease",
-                "&:hover": {
-                  borderColor: ACCENT_COLOR_SECONDARY,
-                  color: ACCENT_COLOR_SECONDARY,
-                  backgroundColor: "rgba(255, 0, 255, 0.1)",
-                  boxShadow: `0 0 15px ${ACCENT_COLOR_PRIMARY}40`,
-                },
-              }}
-            >
-              {isChartOpen ? "HIDE CLASSIFICATION CHART ▲" : "SHOW CLASSIFICATION CHART ▼"}
-            </Button>
-            <Collapse in={isChartOpen}>
-              <Box
-                sx={{
-                  ...crystalShardStyle,
-                  p: 4,
-                  height: "400px",
-                  mt: 2,
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                {chunkCounts.total > 0 ? (
-                    // @ts-expect-error
-                  <Pie data={chartData} options={chartOptions} />
-                ) : (
-                  <Typography color={TEXT_COLOR_MUTED}>
-                    No classification data found in response.
-                  </Typography>
-                )}
-              </Box>
-            </Collapse>
-          </Box>
-
-          {/* PDF Viewer / Raw Data Toggle */}
-          <Tabs
-            value={outputTab}
-            onChange={(_, newValue) => setOutputTab(newValue)}
-            sx={{
-              mb: 2,
-              "& .MuiTabs-indicator": { backgroundColor: ACCENT_COLOR_PRIMARY },
-            }}
-          >
-            <Tab
-              label="Processed PDF Viewer"
-              sx={{ color: outputTab === 0 ? ACCENT_COLOR_PRIMARY : TEXT_COLOR_MUTED, fontWeight: 700 }}
-            />
-            <Tab
-              label="Raw Classification Console"
-              sx={{ color: outputTab === 1 ? ACCENT_COLOR_PRIMARY : TEXT_COLOR_MUTED, fontWeight: 700 }}
-            />
-          </Tabs>
-
-          {/* Content Box */}
-          <Box sx={{ position: "relative" }}>
-            {outputTab === 0 && renderPdfViewer()}
-            {outputTab === 1 && renderRawDataConsole()}
-          </Box>
-        </Box>
-      )}
-
-      {/* --- Legend Panel (Fixed position) --- */}
+  const renderResultsView = () => (
+    <Box
+      sx={{
+        width: "100%",
+        height: "100vh",
+        display: "flex",
+        position: "relative",
+      }}
+    >
+      {/* --- Main Content Area: PDF Viewer --- */}
       <Box
-        id="legend"
         sx={{
-          ...crystalShardStyle,
-          position: "fixed",
-          top: { xs: "auto", sm: "150px" },
-          bottom: { xs: "20px", sm: "auto" },
-          right: "20px",
-          width: "220px",
-          p: 3,
-          zIndex: 10,
+          flexGrow: 1,
+          height: "100vh",
+          padding: "30px",
+          paddingRight: isChartOpen ? `${PANEL_WIDTH + 30}px` : "30px",
+          transition: "padding-right 0.3s ease",
+          boxSizing: "border-box",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
         <Typography
-          component="h3"
+          variant="h4"
+          component="h1"
           sx={{
-            fontSize: "18px",
-            mb: 2,
-            textAlign: "center",
-            fontWeight: 700,
             color: ACCENT_COLOR_SECONDARY,
-            borderBottom: `1px solid rgba(255, 255, 255, 0.1)`,
+            fontWeight: 800,
+            mb: 2,
+            textShadow: `0 0 8px ${ACCENT_COLOR_SECONDARY}50`,
           }}
         >
-          ANALYSIS LEGEND
+          {selectedFile?.name || "Document Analysis"}
         </Typography>
 
-        {(Object.keys(colorMap) as unknown as ColorKey[]).map((key) => {
-          const color = colorMap[key];
-          const name = colorKeyToName(key);
-          const percentage = percentages[key];
-          return (
-            <Box
-              key={key}
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 1.5,
-                fontSize: "15px",
-              }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  minWidth: "120px",
-                  flexGrow: 1,
-                }}
-              >
-                <span
-                  className="color-box"
-                  style={{
-                    background: color,
-                    width: "18px",
-                    height: "18px",
-                    borderRadius: "4px",
-                    marginRight: "10px",
-                    boxShadow: `0 0 5px ${color}80`,
-                  }}
-                ></span>
-                <Typography
-                  component="span"
-                  sx={{ color: TEXT_COLOR_MUTED, fontWeight: 500 }}
-                >
-                  {name}
-                </Typography>
-              </Box>
-              <Typography
-                component="span"
-                sx={{
-                  color: color,
-                  fontWeight: 800,
-                  minWidth: "40px",
-                  textAlign: "right",
-                }}
-                id={`perc${key}`}
-              >
-                {percentage}%
-              </Typography>
-            </Box>
-          );
-        })}
+        <Box
+          component="iframe"
+          id="pdfViewer"
+          title="Processed PDF"
+          // Applied glass background to the PDF viewer container
+          sx={{
+            width: "100%",
+            height: "80vh",
+            borderRadius: "1rem",
+            border: `2px solid ${ACCENT_COLOR_PRIMARY}60`,
+            backdropFilter: "blur(5px)",
+            backgroundColor: "rgba(40, 40, 60, 0.5)",
+            boxShadow: `0 0 30px ${ACCENT_COLOR_PRIMARY}30`,
+          }}
+          src={
+            processedPdfBase64
+              ? `data:application/pdf;base64,${processedPdfBase64}`
+              : ""
+          }
+        />
+
+        {/* Status Bar for Results */}
         <Typography
           variant="body2"
           sx={{
-            mt: 2,
-            pt: 1,
-            borderTop: `1px solid rgba(255, 255, 255, 0.1)`,
-            textAlign: "center",
+            mt: 1,
             color: TEXT_COLOR_MUTED,
+            textAlign: "right",
+            p: 1,
+            borderTop: "1px solid rgba(255, 255, 255, 0.1)",
           }}
         >
-          Total Weighted Chars: {chunkCounts.total}
+          SYSTEM STATUS: {status}
         </Typography>
       </Box>
+
+      {/* --- Collapsible Analysis Panel (Glass Shard) --- */}
+      <Box
+        sx={{
+          position: "fixed",
+          top: 0,
+          right: 0,
+          height: "100vh",
+          width: PANEL_WIDTH,
+          transform: `translateX(${isChartOpen ? 0 : PANEL_WIDTH - 50}px)`,
+          transition: "transform 0.3s ease-in-out",
+          zIndex: 100,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "stretch",
+        }}
+      >
+        {/* Toggle Button */}
+        <Tooltip
+          title={isChartOpen ? "Collapse Panel" : "Expand Panel"}
+          placement="left"
+        >
+          <IconButton
+            onClick={() => setIsChartOpen((prev) => !prev)}
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: -50,
+              transform: "translateY(-50%)",
+              bgcolor: "rgba(30, 30, 30, 0.8)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              boxShadow: `0 0 10px ${ACCENT_COLOR_PRIMARY}80`,
+              color: ACCENT_COLOR_PRIMARY,
+              "&:hover": {
+                bgcolor: "rgba(50, 50, 50, 0.9)",
+                color: ACCENT_COLOR_SECONDARY,
+              },
+            }}
+          >
+            {isChartOpen ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+          </IconButton>
+        </Tooltip>
+
+        {/* Panel Content (Glass Shard) */}
+        <Box
+          sx={{
+            ...crystalShardStyle,
+            flexGrow: 1,
+            p: 4,
+            borderRadius: 0,
+            borderLeft: "none",
+          }}
+        >
+          <Typography
+            variant="h5"
+            sx={{
+              color: ACCENT_COLOR_PRIMARY,
+              fontWeight: 700,
+              mb: 3,
+              textAlign: "center",
+            }}
+          >
+            ANALYSIS OVERVIEW
+          </Typography>
+
+          <Tooltip
+            title="Metric: Paragraph Length in Characters"
+            placement="top"
+          >
+            <Typography
+              variant="subtitle1"
+              sx={{
+                color: ACCENT_COLOR_SECONDARY,
+                textAlign: "center",
+                mb: 3,
+                p: 1,
+                border: "1px solid rgba(0, 255, 255, 0.2)",
+                borderRadius: "8px",
+                // Subtle holographic data border
+                boxShadow: `0 0 10px ${ACCENT_COLOR_SECONDARY}40`,
+              }}
+            >
+              Total Weighted Chars: {chunkCounts.total.toLocaleString()}
+            </Typography>
+          </Tooltip>
+
+          {/* Pie Chart Area */}
+          <Box sx={{ height: 280, mb: 4, position: "relative" }}>
+            {chunkCounts.total > 0 ? (
+              //@ts-expect-error
+              <Pie data={chartData} options={chartOptions} />
+            ) : (
+              <Typography
+                color={TEXT_COLOR_MUTED}
+                sx={{ textAlign: "center", mt: 10 }}
+              >
+                Awaiting data transmission...
+              </Typography>
+            )}
+          </Box>
+
+          {/* Custom Legend/Detailed Data */}
+          <Typography
+            variant="body1"
+            sx={{
+              color: TEXT_COLOR_MUTED,
+              fontWeight: 700,
+              mb: 2,
+              borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+              pb: 1,
+            }}
+          >
+            Classification Breakdown (Count & %):
+          </Typography>
+
+          {/* Legend Items */}
+          <Box sx={{ maxHeight: 300, overflowY: "auto", pr: 1 }}>
+            {(
+              Object.keys(colorMap) as unknown as (keyof typeof colorMap)[]
+            ).map((keyStr) => {
+              const key = parseInt(keyStr.toString(), 10) as ColorKey;
+              const color = colorMap[key];
+              const name = colorKeyToName(key);
+              const value = chunkCounts[key];
+
+              return (
+                <Box
+                  key={key}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 1.5,
+                    fontSize: "15px",
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <span
+                      style={{
+                        background: color,
+                        width: "16px",
+                        height: "16px",
+                        borderRadius: "4px",
+                        marginRight: "10px",
+                        boxShadow: `0 0 5px ${color}80`,
+                      }}
+                    ></span>
+                    <Typography
+                      component="span"
+                      sx={{ color: TEXT_COLOR_MUTED, fontWeight: 500 }}
+                    >
+                      {name}
+                    </Typography>
+                  </Box>
+                  <Typography
+                    component="span"
+                    sx={{ color: color, fontWeight: 800, textAlign: "right" }}
+                  >
+                    {value.toLocaleString()} ({percentageData[key]}%)
+                  </Typography>
+                </Box>
+              );
+            })}
+          </Box>
+        </Box>
+      </Box>
+    </Box>
+  );
+
+  return (
+    <Box
+      sx={{
+        minHeight: "100vh",
+        width: "100%",
+        // Set the primary container background to transparent
+        backgroundColor: "transparent",
+        // Assuming the parent or <body> element will provide the space background
+        color: "#fff",
+        fontFamily: '"Poppins", sans-serif',
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* --- CONDITIONAL RENDERING: INPUT OR RESULTS --- */}
+      {!processedPdfBase64 ? renderInputShard() : renderResultsView()}
     </Box>
   );
 }

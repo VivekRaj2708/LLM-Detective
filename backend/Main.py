@@ -35,6 +35,19 @@ import re
 
 from Utils.PDF import HighlightParagraphs, highlight_paragraphs
 
+## Databases
+from motor.motor_asyncio import AsyncIOMotorClient
+from Database.Credentials import MONGO_URL, MONGODB_DB_NAME
+from Auth.Route import EmailInput, login_route
+from motor.motor_asyncio import AsyncIOMotorCollection
+
+
+client = AsyncIOMotorClient(MONGO_URL)
+db = client[MONGODB_DB_NAME]
+
+users_collection = db["users"]
+projects_collection = db["projects"]
+documents_collection = db["documents"]
 
 API_URL = "http://localhost:3344/api/get"
 
@@ -469,6 +482,11 @@ async def websocket_upload(websocket: WebSocket):
             span.set_status(StatusCode.ERROR, description="File Upload/Extraction Failed")
             span.record_exception(e)
             span.set_attribute("error.message", str(e))
+
+# Main Links
+@app.post("/api/login")
+async def login_user(payload: EmailInput, users_collection: AsyncIOMotorCollection):
+    return await login_route(payload, users_collection)
 
 
 if __name__ == "__main__":

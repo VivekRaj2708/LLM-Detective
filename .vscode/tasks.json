@@ -46,6 +46,17 @@
       "problemMatcher": []
     },
     {
+      "label": "Run MongoDB",
+      "type": "shell",
+      "command": "sudo systemctl start mongodb",
+      "presentation": {
+        "panel": "dedicated",
+        "group": "servers",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Run All",
       "dependsOn": [
         "Run Jaeger",
