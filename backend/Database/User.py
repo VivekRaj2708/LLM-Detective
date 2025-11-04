@@ -2,7 +2,7 @@ from ast import List
 from pymongo.collection import Collection
 from uuid import uuid4
 
-async def get_or_create_user(email: str, users_collection: Collection) -> dict:
+async def get_or_create_user(email: str, name: str, users_collection: Collection) -> dict:
     """Fetch a user by email. If not found, create a new one."""
     user = await users_collection.find_one({"email": email})
 
@@ -12,7 +12,7 @@ async def get_or_create_user(email: str, users_collection: Collection) -> dict:
     # Create new user
     new_user = {
         "_id": str(uuid4()),
-        "username": email.split("@")[0],  # default username from email
+        "name": name,  # default username from email
         "email": email,
         "storage": 0,
         "projects": []

@@ -39,7 +39,7 @@ export default function LoginPage() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email: user.email }),
+          body: JSON.stringify({ email: user.email, name: user.displayName }),
         });
         if (loginResponse.status !== 200) {
           setError("Server error during login. Please try again later.");

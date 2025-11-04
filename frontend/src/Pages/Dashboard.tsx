@@ -79,11 +79,17 @@ function AccountSidebarPreview(props: AccountPreviewProps & { mini: boolean }) {
 
 function SidebarFooterAccountPopover() {
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
 
   return (
     <Stack direction="column">
       <AccountPopoverFooter>
-        <SignOutButton onClick={() => dispatch(logout())} />
+        <SignOutButton
+          onClick={() => {
+            dispatch(logout());
+            navigate("/login");
+          }}
+        />
       </AccountPopoverFooter>
     </Stack>
   );
@@ -140,10 +146,11 @@ export default function Dashboard() {
   });
   const authentication = React.useMemo(
     () => ({
-      signIn: () => setSession({
-        user: { name, email, image: userPfp },
-      }),
-      signOut: () => dispatch(logout())
+      signIn: () =>
+        setSession({
+          user: { name, email, image: userPfp },
+        }),
+      signOut: () => dispatch(logout()),
     }),
     []
   );

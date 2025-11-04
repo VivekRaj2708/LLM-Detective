@@ -8,17 +8,20 @@ from Database.User import get_or_create_user, get_all_user_projects
 
 class EmailInput(BaseModel):
     email: EmailStr
+    name: str
 
 
 async def login_route(payload: EmailInput, users_collection: AsyncIOMotorCollection, projects_collection: AsyncIOMotorCollection):
     email = payload.email
-    user = await get_or_create_user(email, users_collection)
+    name = payload.name
+    user = await get_or_create_user(email, name, users_collection)
     projects = await get_all_user_projects(user.get("projects", []), projects_collection)
 
     # Prepare user details (excluding sensitive fields)
+    
     user_details = {
         "id": str(user["_id"]),
-        "name": user.get("name"),
+        "name": user.get("username"),
         "email": user["email"],
         "storage": user.get("storage", 0),
         "projects": user.get("projects", []),
