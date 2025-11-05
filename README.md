@@ -743,6 +743,12 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
   - 🔧 Trained the 4-class classification model 
   - 📧 Contact: [tanish.yelgoe@iitgn.ac.in]
 
+- **[Praanshu Patel](https://github.com/Praanshu101)** - *DataCreation & Model Training*
+  - 🎓 IIT Gandhinagar
+  - 🔧 Created a subset of Mistral Machine Polished data
+  - 🔧 Trained the LLM class prediction model (TinyBert and DistilBERT)
+  - 📧 Contact: [praanshu.patel@iitgn.ac.in]
+
 ## 🙏 Acknowledgments
 
 ### 🏆 **Special Thanks**
