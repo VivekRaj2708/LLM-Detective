@@ -39,13 +39,20 @@ templates = Jinja2Templates(directory="Templates")
 async def get_random_number(request: Request):
     data = await request.json()
     chars = data.get("chars", "")
+    type_label = data.get("type", "hw_mp")  # default
 
     # You can use 'chars' here if you want to influence randomness later
     inputs = tokenizer(chars, return_tensors="pt", truncation=True, padding=True, max_length=128)
+    type_tensor = torch.tensor([TYPE_TO_LABEL[type_label]], dtype=torch.long)
+    
     with torch.no_grad():
-        outputs = model(inputs['input_ids'], attention_mask=inputs['attention_mask'], type_labels=inputs.get('type_labels'))
-        logits = outputs.logits
-        predicted_class = torch.argmax(logits, dim=1).item()
+            outputs = model(
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+                type_labels=type_tensor
+            )
+            logits = outputs  # already logits
+            predicted_class = torch.argmax(logits, dim=1).item()
 
     return JSONResponse({"input": chars, "result": predicted_class})
 

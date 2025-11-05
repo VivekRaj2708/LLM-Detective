@@ -89,12 +89,13 @@ class DANN_Text_Detector(nn.Module):
             nn.Linear(256, num_model_classes)
         )
 
-    def forward(self, input_ids, attention_mask, type_labels):
+    def forward(self, input_ids, attention_mask, type_labels=None, token_type_ids=None):
         # Pass input through the backbone
         outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
         representation = outputs.last_hidden_state[:, 0, :]
 
         # Embed the type labels
+        type_labels = type_labels if type_labels is not None else token_type_ids
         type_emb = self.type_embedding(type_labels)
 
         # Concatenate and classify
