@@ -178,7 +178,7 @@ LLM-Detective/
 │   └── Templates
 │       └── Test.html
 ├── README.md
-└── Scripts
+└── scripts
     └── GenerateFileTree.sh
 
 29 directories, 93 files
