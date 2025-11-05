@@ -7,6 +7,7 @@ from transformers import AutoTokenizer, AutoModel, get_linear_schedule_with_warm
 from tqdm.auto import tqdm
 import json
 import sys
+import argparse
 
 # --- Configuration & Hyperparameters ---
 # Use a smaller transformer for laptop-friendly runs. DistilBERT is compact and fast.
@@ -33,7 +34,7 @@ MODEL_TO_LABEL = {
 }
 
 # Training parameters
-EPOCHS = 1
+EPOCHS = 2
 # Smaller batch size and max length for lower memory usage on laptops
 BATCH_SIZE = 8
 MAX_LENGTH = 256
@@ -89,13 +90,12 @@ class DANN_Text_Detector(nn.Module):
             nn.Linear(256, num_model_classes)
         )
 
-    def forward(self, input_ids, attention_mask, type_labels=None, token_type_ids=None):
+    def forward(self, input_ids, attention_mask, type_labels):
         # Pass input through the backbone
         outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
         representation = outputs.last_hidden_state[:, 0, :]
 
         # Embed the type labels
-        type_labels = type_labels if type_labels is not None else token_type_ids
         type_emb = self.type_embedding(type_labels)
 
         # Concatenate and classify
@@ -296,6 +296,19 @@ def evaluate(model, data_loader, model_criterion, device):
 ## ---------------------------------
 
 def main():
+    Best_acc = 0.9
+    parser = argparse.ArgumentParser(description="Train or resume training of the DANN text detector.")
+    parser.add_argument("--train-file", default=TRAIN_FILE, help="Path to training .jsonl file")
+    parser.add_argument("--val-file", default=VAL_FILE, help="Path to validation .jsonl file")
+    parser.add_argument("--model-name", default=MODEL_NAME, help="HuggingFace model name")
+    parser.add_argument("--epochs", type=int, default=EPOCHS, help="Number of training epochs")
+    parser.add_argument("--batch-size", type=int, default=BATCH_SIZE, help="Training batch size")
+    parser.add_argument("--max-length", type=int, default=MAX_LENGTH, help="Max tokenization length")
+    parser.add_argument("--lr", type=float, default=LEARNING_RATE, help="Learning rate")
+    parser.add_argument("--resume", type=str, default="dann_detector_final.pth", help="Path to checkpoint .pth to resume from")
+    parser.add_argument("--save-path", type=str, default="dann_detector_final.pth", help="Path to save final checkpoint")
+    args = parser.parse_args()
+
     print("Starting training pipeline...")
 
     # --- 1. Setup Device ---
@@ -303,28 +316,28 @@ def main():
     print(f"Using device: {device}")
 
     # --- 2. Load Tokenizer ---
-    print(f"Loading tokenizer: {MODEL_NAME}")
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    print(f"Loading tokenizer: {args.model_name}")
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
 
     # --- 3. Create Datasets and DataLoaders ---
-    print(f"Loading training data from: {TRAIN_FILE}")
-    train_dataset = JsonlTextDataset(TRAIN_FILE)
+    print(f"Loading training data from: {args.train_file}")
+    train_dataset = JsonlTextDataset(args.train_file)
 
-    print(f"Loading validation data from: {VAL_FILE}")
-    val_dataset = JsonlTextDataset(VAL_FILE)
+    print(f"Loading validation data from: {args.val_file}")
+    val_dataset = JsonlTextDataset(args.val_file)
 
     collate_fn = create_collate_fn(tokenizer, MAX_LENGTH)
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=BATCH_SIZE,
+        batch_size=args.batch_size,
         shuffle=True,
         collate_fn=collate_fn
     )
 
     val_loader = DataLoader(
         val_dataset,
-        batch_size=BATCH_SIZE,
+        batch_size=args.batch_size,
         shuffle=False,
         collate_fn=collate_fn
     )
@@ -335,7 +348,7 @@ def main():
     print("Initializing model...")
     model = DANN_Text_Detector(
         num_model_classes=NUM_MODEL_CLASSES,
-        backbone_model=MODEL_NAME,
+        backbone_model=args.model_name,
         type_vocab_size=len(TYPE_TO_LABEL),
         type_emb_dim=32
     ).to(device)
@@ -344,20 +357,54 @@ def main():
     model_criterion = nn.CrossEntropyLoss()
 
     # Optimizer
-    optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE)
+    optimizer = optim.AdamW(model.parameters(), lr=args.lr)
 
     # Scheduler
-    total_steps = len(train_loader) * EPOCHS
+    total_steps = len(train_loader) * args.epochs
     scheduler = get_linear_schedule_with_warmup(
         optimizer,
         num_warmup_steps=0,
         num_training_steps=total_steps
     ) if total_steps > 0 else None
 
+    # Optionally resume from a checkpoint
+    start_epoch = 0
+    if args.resume:
+        try:
+            print(f"Loading checkpoint from: {args.resume}")
+            checkpoint = torch.load(args.resume, map_location=device)
+
+            # Prefer state_dict keys if saved as dict; support both full model.state_dict() and checkpoint dict
+            if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+                model.load_state_dict(checkpoint['model_state_dict'])
+                if 'optimizer_state_dict' in checkpoint and checkpoint['optimizer_state_dict'] is not None:
+                    try:
+                        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+                    except Exception as e:
+                        print(f"Warning: couldn't load optimizer state: {e}")
+                if 'scheduler_state_dict' in checkpoint and checkpoint['scheduler_state_dict'] is not None and scheduler is not None:
+                    try:
+                        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+                    except Exception as e:
+                        print(f"Warning: couldn't load scheduler state: {e}")
+                start_epoch = checkpoint.get('epoch', 0) + 1
+            else:
+                # If it's a bare state_dict saved via torch.save(model.state_dict())
+                model.load_state_dict(checkpoint)
+                print("Loaded model state_dict from checkpoint (optimizer/scheduler not present).")
+
+            print(f"Resumed from checkpoint. Starting at epoch {start_epoch + 1} (0-based {start_epoch}).")
+        except FileNotFoundError:
+            print(f"Checkpoint file not found: {args.resume}", file=sys.stderr)
+            raise
+        except Exception as e:
+            print(f"Error loading checkpoint: {e}", file=sys.stderr)
+            raise
+
     # --- 5. Training Loop ---
     print("--- Starting Training ---")
-    for epoch in range(EPOCHS):
-        print(f"\nEpoch {epoch + 1}/{EPOCHS}")
+    for epoch in range(start_epoch, args.epochs):
+        print(f"\nEpoch {epoch + 1}/{args.epochs}")
 
         train_model_loss = train_epoch(
             model, train_loader, model_criterion, optimizer, scheduler, device
@@ -374,11 +421,22 @@ def main():
         print(f"  Val Model Loss: {val_model_loss:.4f}")
         print(f"  Val Model Accuracy: {val_model_acc:.4f}")
 
-    # --- 6. Save Final Model ---
-    output_model_path = "dann_detector_final.pth"
-    print(f"\nTraining finished. Saving model to {output_model_path}")
-    torch.save(model.state_dict(), output_model_path)
-    print("Done.")
+        # --- 6. Save Final Model ---
+        if val_model_acc >= Best_acc:
+            Best_acc = val_model_acc
+            output_model_path = args.save_path
+            print(f"\nTraining finished. Saving checkpoint to {output_model_path}")
+            # Save comprehensive checkpoint so training can be resumed
+            checkpoint = {
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'scheduler_state_dict': scheduler.state_dict() if scheduler is not None else None,
+            }
+            torch.save(checkpoint, output_model_path)
+            print("Done.")
+        else:
+            print(f"\nTraining finished. Validation accuracy {val_model_acc:.4f} did not reach threshold. Model not saved.")
 
 if __name__ == "__main__":
     main()
