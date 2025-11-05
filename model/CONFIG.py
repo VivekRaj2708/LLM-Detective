@@ -1,2 +1,2 @@
-MODEL_PATH = "RoBERTa/checkpoint.pt"
-MODEL_NAME = "raj-tomar001/LLM-DetectAIve_deberta-base"
+MODEL_PATH = "BERT/best_tinybert.pth"
+MODEL_NAME = "prajjwal1/bert-tiny"

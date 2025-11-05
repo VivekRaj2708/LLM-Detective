@@ -6,6 +6,7 @@ from opentelemetry.trace import Tracer
 from Utils.Group import GroupPara
 from Utils.Request import GetClass
 
+
 def highlight_sentences(pdf_input, pdf_output, highlights):
     """
     Highlights sentences in a PDF with different colors.
@@ -13,7 +14,7 @@ def highlight_sentences(pdf_input, pdf_output, highlights):
     Args:
         pdf_input (str): Path to the input PDF.
         pdf_output (str): Path to save the highlighted PDF.
-        highlights (list of tuples): Each tuple is (sentence, color), 
+        highlights (list of tuples): Each tuple is (sentence, color),
                                      color as (R,G,B), values 0-1
                                      Example: ("Python", (1,0,0)) -> red
     """
@@ -33,13 +34,14 @@ def highlight_sentences(pdf_input, pdf_output, highlights):
     doc.save(pdf_output)
     print(f"✅ Saved highlighted PDF to {pdf_output}")
 
+
 def highlight_paragraphs(pdf_bytes: bytes) -> bytes:
     # Load PDF from bytes
     doc = fitz.open("pdf", pdf_bytes)
     colors = [
         (1, 1, 0),   # yellow
         (0, 1, 1),   # cyan
-        (1, 0.6, 0), # orange
+        (1, 0.6, 0),  # orange
         (0.7, 0.9, 0.2)  # lime
     ]
 
@@ -49,7 +51,6 @@ def highlight_paragraphs(pdf_bytes: bytes) -> bytes:
 
         if not chosen:
             continue
-
 
         for i, para in enumerate(chosen):
             x0, y0, x1, y1, *_ = para
@@ -63,16 +64,18 @@ def highlight_paragraphs(pdf_bytes: bytes) -> bytes:
 
     return output_stream.getvalue()
 
-async def HighlightParagraphs(pdf_bytes: bytes, tracer: Tracer=None) -> bytes:
+
+async def HighlightParagraphs(pdf_bytes: bytes, tracer: Tracer = None) -> bytes:
     # Load PDF from bytes
     doc = fitz.open("pdf", pdf_bytes)
-    colors = [
-        (1, 0, 0),   # red
-        (0, 1, 0),   # green
-        (0, 0, 1),   # blue
-        (1, 0, 1),   # magenta
-        (1, 1, 1)    # white
+    color_map = [
+        (0.6, 1.0, 0.6),   # #99FF99 - Light Green - Humanise
+        (0.6, 0.6, 1.0),   # #9999FF - Light Blue - Polished
+        (1.0, 0.6, 0.6),   # #FF9999 - Light Red - AI
+        (1.0, 1.0, 0.6),   # #FFFF99 - Light Yellow - Humanised
+        (1.0, 1.0, 1.0),   # #FFFFFF - Light (default) - Undetermined
     ]
+
     data = []
     for page in doc:
         blocks = page.get_text("blocks")
@@ -81,20 +84,22 @@ async def HighlightParagraphs(pdf_bytes: bytes, tracer: Tracer=None) -> bytes:
         if not chosen:
             continue
 
-        grouped, paragraphs = GroupPara(chosen, minCount=50)
-        
+        grouped, paragraphs = GroupPara(chosen, minCount=20)
+
         if len(paragraphs) == 0:
             continue
-        
-        
+
         for j, p in enumerate(paragraphs):
             class_name = await GetClass(p)
-            data.append((p, class_name))
+            data.append((p, class_name[0], class_name[1]))
             # print("\n'" + class_name + "'")
-            for _, para in enumerate(grouped[j]):  # Just to simulate async call per paragraph
+            # Just to simulate async call per paragraph
+            for _, para in enumerate(grouped[j]):
                 x0, y0, x1, y1, *_ = para
                 highlight = page.add_highlight_annot(fitz.Rect(x0, y0, x1, y1))
-                highlight.set_colors(stroke=colors[int(class_name) % len(colors)])
+                highlight.set_colors(
+                    stroke=color_map[int(class_name[0]) % len(color_map)]
+                )
                 highlight.update()
 
     output_stream = io.BytesIO()
@@ -112,4 +117,5 @@ if __name__ == "__main__":
         ("What I want should not be", (0, 0, 1)),             # blue
     ]
 
-    highlight_sentences("./Test/Data/XMLtest.pdf", "./Test/Data/XMLtesthighlighted.pdf", highlights)
+    highlight_sentences("./Test/Data/XMLtest.pdf",
+                        "./Test/Data/XMLtesthighlighted.pdf", highlights)

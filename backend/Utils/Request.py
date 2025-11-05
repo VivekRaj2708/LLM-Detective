@@ -18,8 +18,8 @@ async def GetClass(token: str) -> int:
         response = await client.post(url, json=payload)
         if response.status_code == 200:
             data = response.json()
-            return data.get("result", 4)
+            return data.get("result", 4), data.get("model_class", -1)
         else:
-            return 4
+            return 4, -1
     
     
