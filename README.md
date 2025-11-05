@@ -755,6 +755,18 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
   - 🔧 Created a subset of Mistral Machine Polished data
   - 🔧 Trained the LLM class prediction model (TinyBert and DistilBERT)
   - 📧 Contact: [praanshu.patel@iitgn.ac.in]
+ 
+- **[Aeshaa Nehal Shah](https://github.com/Aeshaa482)** - *DataCreation & Model Training*
+  - 🎓 IIT Gandhinagar
+  - 🔧 Created a subset of Mistral Machine Generated data
+  - 🔧 Trained the LLM source (two-class) prediction model (RoBERTa-base)
+  - 📧 Contact: [aeshaa.shah@iitgn.ac.in]
+
+- **[Sharvari Mirge](https://github.com/msharvari31)** - *DataCreation & Model Training*
+  - 🎓 IIT Gandhinagar
+  - 🔧 Created a subset of Machine Polished data
+  - 🔧 Trained the LLM source (two-class) prediction model (RoBERTa-base)
+  - 📧 Contact: [sharvari.mirge@iitgn.ac.in]
 
 ## 🙏 Acknowledgments
 
