@@ -2,8 +2,6 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import logo from "../assets/logo-white.png";
 import backdrop from "../assets/IITGN-evening.jpg";
-import { auth } from "../Firebase";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../Store";
 import { login } from "../Store/Login";
@@ -11,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { LOGIN_API_URL } from "../Urls";
 import { setUser } from "../Store/User";
 import { setProjects } from "../Store/Projects";
+import { useGoogleLoginHandler, getGoogleUser } from "../Utils/GoogleAuth";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -20,17 +19,11 @@ export default function LoginPage() {
 
   const dispatch = useDispatch<AppDispatch>();
 
-  const handleClick = async () => {
-    setError("");
-    const provider = new GoogleAuthProvider();
-
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
+  const handleClick = useGoogleLoginHandler(
+    async (access_token) => {
+      const user = await getGoogleUser(access_token);
       if (!user.email || !user.email.endsWith("@iitgn.ac.in")) {
         setError("Please use your IITGN email to sign in.");
-        await auth.signOut();
       } else {
         console.log("Login successful:", user.email);
         setLoading(true);
@@ -39,7 +32,7 @@ export default function LoginPage() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email: user.email, name: user.displayName }),
+          body: JSON.stringify({ email: user.email, name: user.name }),
         });
         if (loginResponse.status !== 200) {
           setError("Server error during login. Please try again later.");
@@ -61,22 +54,78 @@ export default function LoginPage() {
         dispatch(setProjects(loginResponseData.projects));
         dispatch(
           login({
-            name: user.displayName || "User",
+            name: user.name || "User",
             email: user.email,
             JWTToken: loginResponseData.token,
           })
         );
 
         navigate("/dashboard");
-        // window.location.href = "/dashboard";
       }
-    } catch (err) {
+    },
+    (err) => {
       console.error(err);
       setError("Failed to sign in. Please try again.");
-    } finally {
-      setLoading(false);
     }
-  };
+  );
+  // const handleClick = async () => {
+  //   setError("");
+  //   const provider = new GoogleAuthProvider();
+
+  //   try {
+  //     const result = await signInWithPopup(auth, provider);
+
+  //     const user = result.user;
+
+  //     if (!user.email || !user.email.endsWith("@iitgn.ac.in")) {
+  //       setError("Please use your IITGN email to sign in.");
+  //       await auth.signOut();
+  //     } else {
+  //       console.log("Login successful:", user.email);
+  //       setLoading(true);
+  //       const loginResponse = await fetch(LOGIN_API_URL, {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //         },
+  //         body: JSON.stringify({ email: user.email, name: user.displayName }),
+  //       });
+  //       if (loginResponse.status !== 200) {
+  //         setError("Server error during login. Please try again later.");
+  //         setLoading(false);
+  //         return;
+  //       }
+
+  //       const loginResponseData = await loginResponse.json();
+  //       if (
+  //         !loginResponseData.token ||
+  //         !loginResponseData.user ||
+  //         loginResponseData.projects === undefined
+  //       ) {
+  //         setError("Server error during login. Please try again later.");
+  //         setLoading(false);
+  //         return;
+  //       }
+  //       dispatch(setUser(loginResponseData.user));
+  //       dispatch(setProjects(loginResponseData.projects));
+  //       dispatch(
+  //         login({
+  //           name: user.displayName || "User",
+  //           email: user.email,
+  //           JWTToken: loginResponseData.token,
+  //         })
+  //       );
+
+  //       navigate("/dashboard");
+  //       // window.location.href = "/dashboard";
+  //     }
+  //   } catch (err) {
+  //     console.error(err);
+  //     setError("Failed to sign in. Please try again.");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   return (
     <div className="relative min-h-screen flex items-center justify-center px-6 overflow-hidden text-gray-100">
@@ -113,7 +162,7 @@ export default function LoginPage() {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.97 }}
-          onClick={handleClick}
+          onClick={() => handleClick()}
           disabled={loading}
           className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium py-2.5 rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all disabled:opacity-70 shadow-lg"
         >
