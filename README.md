@@ -728,33 +728,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - ❌ Liability not accepted
 - ❌ Warranty not provided
 
-## 👥 Team & Contributors
-
-### 🏛️ **Core Team**
-- **[Vivek Raj](https://github.com/VivekRaj2708)** - *Project Lead & Full-Stack Developer*
-  - 🎓 IIT Gandhinagar
-  - 🔧 Backend Architecture, ML Integration
-  - 📧 Contact: [vivek.raj@iitgn.ac.in]
-
-### 🙋 **How to Join**
-We're always looking for talented contributors! Areas where we need help:
-- 🧠 **Machine Learning**: Model optimization and new algorithms
-- ⚛️ **Frontend**: UI/UX improvements and new features  
-- 🔧 **Backend**: Performance optimization and new APIs
-- 📖 **Documentation**: Technical writing and tutorials
-- 🧪 **Testing**: Test coverage and quality assurance
-
-## 🙏 Acknowledgments
-
-### 🏆 **Special Thanks**
-
-- **[IIT Gandhinagar](https://iitgn.ac.in/)** - Institutional support and resources
-- **[OpenTelemetry Community](https://opentelemetry.io/)** - Comprehensive observability framework
-- **[Material-UI Team](https://mui.com/)** - Beautiful React component library
-- **[FastAPI Creators](https://fastapi.tiangolo.com/)** - High-performance async web framework
-- **[Tesseract OCR](https://github.com/tesseract-ocr/tesseract)** - Optical character recognition engine
-- **[PyMuPDF Contributors](https://pymupdf.readthedocs.io/)** - PDF processing capabilities
-
 ### 🛠️ **Technologies & Libraries**
 
 | Category | Technology | Purpose |
