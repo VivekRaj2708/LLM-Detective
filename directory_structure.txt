@@ -1,0 +1,117 @@
+.
+├── backend
+│   ├── Auth
+│   │   ├── Config.py
+│   │   ├── JWT.py
+│   │   └── Route.py
+│   ├── credentials.json
+│   ├── Database
+│   │   ├── Credentials.py
+│   │   ├── Helper.py
+│   │   ├── Models.py
+│   │   └── User.py
+│   ├── Main.py
+│   ├── requirements.txt
+│   ├── Run.sh
+│   ├── Socket
+│   │   └── Upload.py
+│   ├── Static
+│   ├── Templates
+│   │   ├── Fin-PDF-High.html
+│   │   ├── OCR-Test.html
+│   │   ├── PDF-Highlight.html
+│   │   └── PDF-OCR.html
+│   ├── Tesseract
+│   │   └── OCR.py
+│   ├── Test
+│   │   ├── Data
+│   │   │   ├── S4_underlined.pdf
+│   │   │   ├── XMLtesthighlighted.pdf
+│   │   │   ├── XMLtest.pdf
+│   │   │   └── XMLtest.xml
+│   │   ├── PDFConversion.py
+│   │   └── XMLConversion.py
+│   ├── uploads
+│   │   ├── gradient-rpa-illustration.zip
+│   │   ├── Hello
+│   │   │   └── uploaded.zip
+│   │   ├── Hello World
+│   │   │   └── uploaded.zip
+│   │   ├── Hi
+│   │   │   ├── S1.pdf
+│   │   │   ├── S2.pdf
+│   │   │   ├── S3.pdf
+│   │   │   └── S4.pdf
+│   │   ├── Hi.zip
+│   │   ├── S1.pdf
+│   │   ├── S4.pdf
+│   │   └── S4.xml
+│   └── Utils
+│       ├── File.py
+│       ├── Group.py
+│       ├── Para.py
+│       ├── PDF.py
+│       ├── Request.py
+│       └── Server.py
+├── directory_structure.txt
+├── frontend
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── public
+│   │   └── vite.svg
+│   ├── README.md
+│   ├── src
+│   │   ├── assets
+│   │   │   ├── 404.svg
+│   │   │   ├── AI.png
+│   │   │   ├── Background.jpg
+│   │   │   ├── Brain.jpg
+│   │   │   ├── Brain.png
+│   │   │   ├── IITGN-evening.jpg
+│   │   │   ├── iitgn-logo.png
+│   │   │   ├── Logo.png
+│   │   │   ├── logo-white.png
+│   │   │   ├── NoProject.svg
+│   │   │   └── react.svg
+│   │   ├── Components
+│   │   │   ├── AddProject.tsx
+│   │   │   ├── Advanced.tsx
+│   │   │   ├── Dashboard.tsx
+│   │   │   └── Quick.tsx
+│   │   ├── Firebase.ts
+│   │   ├── index.css
+│   │   ├── main.tsx
+│   │   ├── Pages
+│   │   │   ├── 404.tsx
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── Home.tsx
+│   │   │   └── Login.tsx
+│   │   ├── Router.tsx
+│   │   ├── Store
+│   │   │   ├── Doc.ts
+│   │   │   ├── Login.ts
+│   │   │   ├── Projects.ts
+│   │   │   └── User.ts
+│   │   ├── Store.ts
+│   │   ├── Urls.ts
+│   │   └── Utils
+│   │       └── TypeCast.ts
+│   ├── tsconfig.app.json
+│   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   └── vite.config.ts
+├── LICENSE
+├── model
+│   ├── API.py
+│   ├── BERT
+│   │   ├── best_tinybert.pth
+│   │   └── tinybert.py
+│   ├── CONFIG.py
+│   ├── requirements.txt
+│   └── Templates
+│       └── Test.html
+└── README.md
+
+26 directories, 89 files

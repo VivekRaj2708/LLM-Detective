@@ -59,156 +59,122 @@ LLM Detective is a cutting-edge document analysis platform that combines advance
 
 ```
 LLM-Detective/
-├── 📄 README.md                     # Project documentation
-├── 📄 LICENSE                       # MIT license file
-├── 🔧 .vscode/                      # VS Code workspace settings
-├── 🗂️ .git/                         # Git repository data
-│
-├── 🖥️ backend/                       # FastAPI Backend Server
-│   ├── 🚀 Main.py                   # FastAPI application with WebSocket support
-│   ├── 📦 requirements.txt          # Python dependencies
-│   ├── 🔧 Run.sh                    # Server startup script
-│   ├── 🔑 credentials.json          # Firebase service account credentials
-│   ├── 📁 __pycache__/              # Python bytecode cache
-│   ├── 🧠 Model/                    # AI Classification Model Assets
-│   │   ├── config.json              # Model configuration
-│   │   ├── model.safetensors        # PyTorch model weights
-│   │   ├── tokenizer_config.json    # Tokenizer settings
-│   │   ├── special_tokens_map.json  # Special token mappings
-│   │   ├── vocab.txt                # Vocabulary file
-│   │   └── .gitattributes           # Git LFS attributes
-│   ├── 🌐 Static/                   # Static web assets
-│   ├── 📋 Templates/                # Jinja2 HTML templates
-│   │   ├── OCR-Test.html           # OCR testing interface
-│   │   └── PDF-OCR.html            # PDF processing interface
-│   ├── 👁️ Tesseract/               # OCR Processing Module
-│   │   ├── OCR.py                  # Tesseract OCR implementation
-│   │   └── __pycache__/            # Python cache files
-│   ├── 🧪 Test/                     # Backend Unit Tests
-│   │   └── XMLConversion.py        # PDF to XML conversion tests
-│   ├── 📤 uploads/                  # File Upload Storage
-│   │   ├── *.pdf                   # Sample PDF documents
-│   │   ├── *.zip                   # Compressed file uploads
-│   │   └── [project-folders]/       # User project directories
-│   └── 🔧 Utils/                    # Utility Modules
-│       ├── File.py                 # File operations & PDF processing
-│       ├── Para.py                 # Text paragraph splitting
-│       ├── PDF.py                  # PDF highlighting utilities
-│       ├── Group.py                # Text grouping functions
-│       ├── Request.py              # HTTP request utilities
-│       ├── Server.py               # Server utility functions
-│       └── __pycache__/            # Python cache files
-│
-├── ⚛️ frontend/                     # React Frontend Application
-│   ├── 📦 package.json             # Node.js dependencies & scripts
-│   ├── 🔧 vite.config.ts           # Vite build configuration
-│   ├── 📝 tsconfig.json            # TypeScript compiler options
-│   ├── 📝 tsconfig.app.json        # App-specific TypeScript config
-│   ├── 📝 tsconfig.node.json       # Node.js TypeScript config
-│   ├── 🧹 eslint.config.js         # ESLint linting rules
-│   ├── 🏠 index.html               # HTML entry point
-│   ├── 📄 README.md                # Frontend documentation
-│   ├── 🌍 public/                  # Public static assets
-│   │   └── vite.svg                # Vite logo
-│   └── 📂 src/                      # Source Code Directory
-│       ├── 🚀 main.tsx             # React application entry point
-│       ├── 🎨 index.css            # Global CSS styles
-│       ├── 🧭 Router.tsx           # React Router configuration
-│       ├── 🏪 Store.ts             # Redux store setup
-│       ├── 🔥 Firebase.ts          # Firebase configuration
-│       ├── 🖼️ assets/              # Static Assets
-│       │   ├── 🎨 *.svg, *.png     # Icons and images
-│       │   ├── 🌌 Background.jpg   # UI background images
-│       │   └── 🏛️ iitgn-logo.png   # IITGN institutional logo
-│       ├── 🧩 Components/          # Reusable React Components
-│       │   ├── ➕ AddProject.tsx   # Project creation component
-│       │   ├── 📊 Dashboard.tsx    # Main dashboard component
-│       │   └── ⚡ Quick.tsx        # AI Detection interface (main)
-│       ├── 📄 Pages/               # Page-Level Components
-│       │   ├── 📊 Dashboard.tsx    # Dashboard page layout
-│       │   ├── 🏠 Home.tsx         # Landing page
-│       │   └── 🔐 Login.tsx        # Authentication page
-│       ├── 🏪 Store/               # Redux State Management
-│       │   ├── 🔐 Login.ts         # Authentication state
-│       │   ├── 👤 User.ts          # User profile state
-│       │   └── 📁 Projects.ts      # Project management state
-│       ├── 🧪 Test/                # Frontend Unit Tests
-│       │   └── 🔐 Login.test.ts    # Login component tests
-│       └── 🔗 Urls.ts              # API endpoint configuration
-│
-├── 🧠 model/                        # External ML Model Server
-│   └── 🚀 API.py                   # FastAPI model inference server
-│
-└── 🧪 test/                        # Test Files & Sample Data
-    ├── 📄 *.pdf                    # Sample PDF documents
-    ├── 📦 test.zip                 # Test file archives
-    └── 👁️ OCR/                     # OCR Test Cases
-        ├── 📄 *.pdf               # Test PDF documents
-        ├── 🖼️ *.jpg               # Test images
-        └── 📊 Table.jpg           # Table extraction samples
-```
-│   │   ├── config.json
-│   │   ├── gitattributes
-│   │   ├── model.safetensors
-│   │   ├── special_tokens_map.json
-│   │   ├── tokenizer_config.json
-│   │   └── vocab.txt
-│   ├── Static/                     # Static web assets
-│   ├── Templates/                  # Jinja2 HTML templates
-│   │   ├── OCR-Test.html
-│   │   └── PDF-OCR.html
-│   ├── Tesseract/                  # OCR Processing Module
-│   │   ├── OCR.py                 # OCR implementation
-│   │   └── __pycache__/
-│   ├── Test/                       # Unit Tests
-│   │   └── XMLConversion.py       # PDF to XML conversion tests
-│   ├── uploads/                    # File upload storage
-│   │   ├── *.pdf                  # Uploaded PDF files
-│   │   ├── *.zip                  # Compressed uploads
-│   │   └── [folders]/             # Organized uploads
-│   └── Utils/                      # Utility Modules
-│       ├── File.py                # File operations & PDF processing
-│       ├── Para.py                # Paragraph splitting utilities
-│       ├── PDF.py                 # PDF highlighting functions
-│       ├── Group.py               # Text grouping utilities
-│       ├── Request.py             # HTTP request utilities
-│       ├── Server.py              # Server utilities
-│       └── __pycache__/
-├── frontend/                        # React Frontend Application
-│   ├── package.json                # Node.js dependencies
-│   ├── vite.config.ts             # Vite configuration
-│   ├── tsconfig.json              # TypeScript configuration
-│   ├── eslint.config.js           # ESLint configuration
-│   ├── index.html                 # HTML entry point
-│   ├── README.md                  # Frontend documentation
-│   ├── public/                    # Public static assets
-│   │   └── vite.svg
-│   └── src/                       # Source code
-│       ├── main.tsx              # Application entry point
-│       ├── index.css             # Global styles
-│       ├── Router.tsx            # React Router configuration
-│       ├── Store.ts              # Redux store configuration
-│       ├── Firebase.ts           # Firebase configuration
-│       ├── assets/               # Static assets
-│       │   ├── *.svg, *.png, *.jpg  # Images and icons
-│       │   └── Background.jpg     # UI backgrounds
-│       ├── Components/           # React Components
-│       │   ├── AddProject.tsx    # Project creation component
-│       │   ├── Dashboard.tsx     # Main dashboard component
-│       │   └── Quick.tsx         # AI Detection interface
-│       ├── Pages/                # Page Components
-│       │   ├── Dashboard.tsx     # Dashboard page
-│       │   ├── Home.tsx          # Landing page
-│       │   └── Login.tsx         # Authentication page
-│       └── Store/                # Redux State Management
-│           └── Login.ts          # Authentication state
-├── model/                           # External ML Model Server
-│   └── API.py                      # Model API endpoint
-└── test/                           # Test Files & Sample Data
-    ├── *.pdf                      # Sample PDF documents
-    ├── test.zip                   # Test archives
-    └── OCR/                       # OCR test cases
-        └── *.pdf, *.jpg           # Test images and documents
+├── backend
+│   ├── Auth
+│   │   ├── Config.py
+│   │   ├── JWT.py
+│   │   └── Route.py
+│   ├── credentials.json
+│   ├── Database
+│   │   ├── Credentials.py
+│   │   ├── Helper.py
+│   │   ├── Models.py
+│   │   └── User.py
+│   ├── Main.py
+│   ├── requirements.txt
+│   ├── Run.sh
+│   ├── Socket
+│   │   └── Upload.py
+│   ├── Static
+│   ├── Templates
+│   │   ├── Fin-PDF-High.html
+│   │   ├── OCR-Test.html
+│   │   ├── PDF-Highlight.html
+│   │   └── PDF-OCR.html
+│   ├── Tesseract
+│   │   └── OCR.py
+│   ├── Test
+│   │   ├── Data
+│   │   │   ├── S4_underlined.pdf
+│   │   │   ├── XMLtesthighlighted.pdf
+│   │   │   ├── XMLtest.pdf
+│   │   │   └── XMLtest.xml
+│   │   ├── PDFConversion.py
+│   │   └── XMLConversion.py
+│   ├── uploads
+│   │   ├── gradient-rpa-illustration.zip
+│   │   ├── Hello
+│   │   │   └── uploaded.zip
+│   │   ├── Hello World
+│   │   │   └── uploaded.zip
+│   │   ├── Hi
+│   │   │   ├── S1.pdf
+│   │   │   ├── S2.pdf
+│   │   │   ├── S3.pdf
+│   │   │   └── S4.pdf
+│   │   ├── Hi.zip
+│   │   ├── S1.pdf
+│   │   ├── S4.pdf
+│   │   └── S4.xml
+│   └── Utils
+│       ├── File.py
+│       ├── Group.py
+│       ├── Para.py
+│       ├── PDF.py
+│       ├── Request.py
+│       └── Server.py
+├── directory_structure.txt
+├── frontend
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── public
+│   │   └── vite.svg
+│   ├── README.md
+│   ├── src
+│   │   ├── assets
+│   │   │   ├── 404.svg
+│   │   │   ├── AI.png
+│   │   │   ├── Background.jpg
+│   │   │   ├── Brain.jpg
+│   │   │   ├── Brain.png
+│   │   │   ├── IITGN-evening.jpg
+│   │   │   ├── iitgn-logo.png
+│   │   │   ├── Logo.png
+│   │   │   ├── logo-white.png
+│   │   │   ├── NoProject.svg
+│   │   │   └── react.svg
+│   │   ├── Components
+│   │   │   ├── AddProject.tsx
+│   │   │   ├── Advanced.tsx
+│   │   │   ├── Dashboard.tsx
+│   │   │   └── Quick.tsx
+│   │   ├── Firebase.ts
+│   │   ├── index.css
+│   │   ├── main.tsx
+│   │   ├── Pages
+│   │   │   ├── 404.tsx
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── Home.tsx
+│   │   │   └── Login.tsx
+│   │   ├── Router.tsx
+│   │   ├── Store
+│   │   │   ├── Doc.ts
+│   │   │   ├── Login.ts
+│   │   │   ├── Projects.ts
+│   │   │   └── User.ts
+│   │   ├── Store.ts
+│   │   ├── Urls.ts
+│   │   └── Utils
+│   │       └── TypeCast.ts
+│   ├── tsconfig.app.json
+│   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   └── vite.config.ts
+├── LICENSE
+├── model
+│   ├── API.py
+│   ├── BERT
+│   │   ├── best_tinybert.pth
+│   │   └── tinybert.py
+│   ├── CONFIG.py
+│   ├── requirements.txt
+│   └── Templates
+│       └── Test.html
+└── README.md
+
+26 directories, 89 files
 ```
 
 ## � Quick Start Guide
