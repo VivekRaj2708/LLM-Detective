@@ -140,7 +140,8 @@ LLM-Detective/
 │   │   │   ├── Advanced.tsx
 │   │   │   ├── Dashboard.tsx
 │   │   │   └── Quick.tsx
-│   │   ├── Firebase.ts
+│   │   ├── Credentials
+│   │   │   └── Secret.json
 │   │   ├── index.css
 │   │   ├── main.tsx
 │   │   ├── Pages
@@ -157,6 +158,7 @@ LLM-Detective/
 │   │   ├── Store.ts
 │   │   ├── Urls.ts
 │   │   └── Utils
+│   │       ├── GoogleAuth.ts
 │   │       └── TypeCast.ts
 │   ├── tsconfig.app.json
 │   ├── tsconfig.json
@@ -169,12 +171,17 @@ LLM-Detective/
 │   │   ├── best_tinybert.pth
 │   │   └── tinybert.py
 │   ├── CONFIG.py
+│   ├── DistilBERT
+│   │   ├── BERT.ipynb
+│   │   └── BERT.py
 │   ├── requirements.txt
 │   └── Templates
 │       └── Test.html
-└── README.md
+├── README.md
+└── Scripts
+    └── GenerateFileTree.sh
 
-26 directories, 89 files
+29 directories, 93 files
 ```
 
 ## � Quick Start Guide
