@@ -739,7 +739,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ### 🏛️ **Core Team**
 
-- **[Vivek Raj](https://github.com/VivekRaj2708)** - *Full-Stack Developer & ML Integration*
+- **[Vivek Raj](https://github.com/VivekRaj2005)** - *Full-Stack Developer & ML Integration*
   - 🎓 IIT Gandhinagar
   - 🔧 Front End, Backend Architecture, ML Integration
   - 📧 Contact: [vivek.raj@iitgn.ac.in]
