@@ -737,6 +737,12 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
   - 🔧 Front End, Backend Architecture, ML Integration
   - 📧 Contact: [vivek.raj@iitgn.ac.in]
 
+- **[Tanish Yelgoe](https://github.com/tanishy7777)** - *DataCreation & Model Training*
+  - 🎓 IIT Gandhinagar
+  - 🔧 Created the data for LLM classification and 4-class Classification
+  - 🔧 Trained the 4-class classification model 
+  - 📧 Contact: [tanish.yelgoe@iitgn.ac.in]
+
 ## 🙏 Acknowledgments
 
 ### 🏆 **Special Thanks**
