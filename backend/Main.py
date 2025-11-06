@@ -540,7 +540,8 @@ async def project_upload(
         span.set_attribute("file.name", zip_file.filename)
 
         # Delegate to the core logic function, passing the span
-    return await NewProject(zip_file, project_name, current_user, users_collection)
+    return await NewProject(zip_file, project_name, current_user, 
+                            users_collection, documents_collection, projects_collection)
 
 if __name__ == "__main__":
     import uvicorn

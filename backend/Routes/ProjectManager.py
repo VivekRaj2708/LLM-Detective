@@ -7,8 +7,11 @@ from fastapi import UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 
 from Routes.CONFIG import MAX_FILE_SIZE_BYTES
-from Utils.File import calculate_directory_size, calculate_directory_size_for_user, copy_temp_tree_to_storage
+from Utils.File import UPLOAD_DIR, calculate_directory_size, calculate_directory_size_for_user, copy_temp_tree_to_storage
 from motor.motor_asyncio import AsyncIOMotorCollection
+from Database.Document import RegisterDocument
+from Database.Project import RegisterProject
+from bson.int64 import Int64
 
 
 # New Project
@@ -16,7 +19,9 @@ async def NewProject(
     zip_file: UploadFile,
     project_name: str,
     current_user: Dict,
-    user_collection: AsyncIOMotorCollection
+    user_collection: AsyncIOMotorCollection,
+    document_collection: AsyncIOMotorCollection,
+    project_collection: AsyncIOMotorCollection
 ):
     """
     Accepts a ZIP file and project name, extracts the file, and calculates 
@@ -41,23 +46,45 @@ async def NewProject(
             with open(zip_path, "wb") as f:
                 f.write(content)
 
+            files = []
             # 2. Extract the ZIP file
             with zipfile.ZipFile(zip_path, 'r') as zf:
                 # Prevent Zip Slip vulnerability by checking paths (best practice)
+
                 for member in zf.namelist():
                     if '..' in member or member.startswith('/') or member.startswith('\\'):
                         continue
                     zf.extract(member, extract_path)
-            
-            copy_temp_tree_to_storage(extract_path, current_user["id"], project_name)
+                    file_id = await RegisterDocument(
+                        document_name=os.path.basename(member),
+                        document_path=os.path.join(
+                            UPLOAD_DIR, current_user["id"], project_name, "uploads", member),
+                        document_collection=document_collection
+                    )
+                    files.append(file_id)
+            copy_temp_tree_to_storage(
+                extract_path, current_user["id"], project_name)
 
             disk_space_bytes = calculate_directory_size(extract_path)
             disk_space_mb = disk_space_bytes / (1024 * 1024)
 
             # Update user's storage information in the database
+            project_uid = await RegisterProject(
+                project_name=project_name,
+                project_path=os.path.join(
+                    UPLOAD_DIR, current_user["id"], project_name),
+                documents=files,
+                project_collection=project_collection
+            )
+
             await user_collection.update_one(
                 {"_id": current_user["id"]},
-                {"$set": {"storage": calculate_directory_size_for_user(current_user["id"])}}
+                {
+                    # ensures storage is stored as int64
+                    "$set": {"storage": Int64(disk_space_bytes)},
+                    # appends new project to list
+                    "$push": {"projects": project_uid}
+                }
             )
 
             return JSONResponse({
