@@ -1,6 +1,9 @@
 from ast import List
 from pymongo.collection import Collection
 from uuid import uuid4
+from bson.int64 import Int64
+
+from Utils.File import generate_directory_structure_new_user
 
 async def get_or_create_user(email: str, name: str, users_collection: Collection) -> dict:
     """Fetch a user by email. If not found, create a new one."""
@@ -14,9 +17,11 @@ async def get_or_create_user(email: str, name: str, users_collection: Collection
         "_id": str(uuid4()),
         "name": name,  # default username from email
         "email": email,
-        "storage": 0,
+        "storage": Int64(0),  # explicitly stored as int64
         "projects": []
     }
+    
+    generate_directory_structure_new_user(new_user["_id"])
 
     await users_collection.insert_one(new_user)
     return new_user

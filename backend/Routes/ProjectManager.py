@@ -3,25 +3,25 @@ import os
 import tempfile
 from typing import Dict
 import zipfile
-from fastapi import UploadFile, File, HTTPException, Form
+from fastapi import UploadFile, HTTPException
 from fastapi.responses import JSONResponse
-from pyparsing import Any
 
 from Routes.CONFIG import MAX_FILE_SIZE_BYTES
-from Utils.File import calculate_directory_size
+from Utils.File import calculate_directory_size, calculate_directory_size_for_user, copy_temp_tree_to_storage
+from motor.motor_asyncio import AsyncIOMotorCollection
 
 
 # New Project
 async def NewProject(
     zip_file: UploadFile,
     project_name: str,
-    current_user: Dict
+    current_user: Dict,
+    user_collection: AsyncIOMotorCollection
 ):
     """
     Accepts a ZIP file and project name, extracts the file, and calculates 
     the total disk space used by the extracted contents.
     """
-    print(current_user)
     if not zip_file.filename or not zip_file.filename.endswith(".zip"):
         raise HTTPException(
             status_code=400, detail="File must be a ZIP archive.")
@@ -48,9 +48,17 @@ async def NewProject(
                     if '..' in member or member.startswith('/') or member.startswith('\\'):
                         continue
                     zf.extract(member, extract_path)
+            
+            copy_temp_tree_to_storage(extract_path, current_user["id"], project_name)
 
             disk_space_bytes = calculate_directory_size(extract_path)
             disk_space_mb = disk_space_bytes / (1024 * 1024)
+
+            # Update user's storage information in the database
+            await user_collection.update_one(
+                {"_id": current_user["id"]},
+                {"$set": {"storage": calculate_directory_size_for_user(current_user["id"])}}
+            )
 
             return JSONResponse({
                 "message": "Project uploaded, extracted, and analyzed successfully",

@@ -125,7 +125,6 @@ def xml_to_pdf_with_underlines(xml_path, pdf_path):
 
 
 # --- Utility Function for Disk Space Calculation ---
-
 def calculate_directory_size(path: str) -> int:
     """
     Calculates the total size of a directory and its contents in bytes.
@@ -145,3 +144,36 @@ def calculate_directory_size(path: str) -> int:
     
     # Add a baseline size to ensure a meaningful result for an empty or mocked directory
     return max(total_size, 1024 * 512) # Minimum 512KB mock size
+
+def calculate_directory_size_for_user(uuid: str) -> int:
+    """
+    Calculates the total size of a user's upload directory in bytes.
+    """
+    user_dir = os.path.join(UPLOAD_DIR, uuid)
+    return calculate_directory_size(user_dir)
+
+def generate_directory_structure_new_user(uuid: str) -> str:
+    """
+    Generates a directory structure for a new user based on their UUID.
+    """
+    user_dir = os.path.join(UPLOAD_DIR, uuid)
+    os.makedirs(user_dir, exist_ok=True)
+    subdirs = ['results', 'uploads']
+    for subdir in subdirs:
+        os.makedirs(os.path.join(user_dir, subdir), exist_ok=True)
+    return user_dir
+
+def copy_temp_tree_to_storage(temp_dir: str, user_uuid: str, project_name: str) -> None:
+    """
+    Copies the contents of a temporary directory to the user's storage directory.
+    """
+    user_storage_dir = os.path.join(UPLOAD_DIR, user_uuid, 'uploads', project_name)
+    os.makedirs(user_storage_dir, exist_ok=True)
+
+    for item in os.listdir(temp_dir):
+        s = os.path.join(temp_dir, item)
+        d = os.path.join(user_storage_dir, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d, dirs_exist_ok=True)
+        else:
+            shutil.copy2(s, d)

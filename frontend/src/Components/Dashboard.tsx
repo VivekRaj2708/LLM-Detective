@@ -25,6 +25,7 @@ import { useSelector } from "react-redux";
 import type { RootState } from "../Store";
 import { ProjectStoreToRow } from "../Utils/TypeCast";
 import noProject from "../assets/NoProject.svg";
+import { bytesToMB } from "../Utils/DataConversion";
 
 // --- NEW Data Interfaces ---
 
@@ -131,6 +132,12 @@ const GlassCard = ({ children }: { children: React.ReactNode }) => (
   </Card>
 );
 
+function GetDisplayStorage(usedStorageMB: number, totalStorageGB: number) {
+  if (usedStorageMB / (totalStorageGB * 1000) >= 0.97) {
+    return `⚠️ ${(usedStorageMB / 1000).toFixed(2)} GB / ${totalStorageGB} GB`;
+  }
+  return `${usedStorageMB.toFixed(1)} MB / ${totalStorageGB} GB`;
+}
 // --- NEW Dashboard Cards Component ---
 
 function AIDetectionDashboardCards({
@@ -138,11 +145,12 @@ function AIDetectionDashboardCards({
   totalStorageGB,
   usedStorageGB,
 }: AIDashboardProps) {
+  const usedStorageMB = bytesToMB(usedStorageGB);
   const totalProjects = projectHistory.length;
   const activeProjects = projectHistory.filter(
     (row) => row.status === "Scanning"
   ).length;
-  const storagePercentage = Math.round((usedStorageGB / totalStorageGB) * 100);
+  const storagePercentage = Math.round((usedStorageMB / totalStorageGB) * 0.1);
 
   const lastCompletedProject = projectHistory
     .filter((row) => row.status === "Completed")
@@ -214,7 +222,7 @@ function AIDetectionDashboardCards({
             >
               <Typography
                 variant="caption"
-                sx={{ color: "white", fontWeight: 700 }}
+                sx={{ color: "white", fontWeight: 700, fontSize: "1rem" }}
               >
                 {storagePercentage}%
               </Typography>
@@ -227,7 +235,7 @@ function AIDetectionDashboardCards({
             Storage Used
           </Typography>
           <Typography variant="h6" sx={{ color: "white", fontWeight: 600 }}>
-            {usedStorageGB.toFixed(1)} GB / {totalStorageGB} GB
+            {GetDisplayStorage(usedStorageMB, totalStorageGB)}
           </Typography>
         </Box>
       </GlassCard>
