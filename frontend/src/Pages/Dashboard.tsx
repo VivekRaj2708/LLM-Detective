@@ -22,7 +22,7 @@ import logo from "../assets/logo-white.png";
 import userPfp from "../assets/iitgn-logo.png";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "../Store";
-import { logout } from "../Store/Login";
+import { logoutUser } from "../Store/Login";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import backdrop from "../assets/IITGN-evening.jpg";
 import DashboardPage from "../Components/Dashboard";
@@ -48,14 +48,6 @@ const demoTheme = createTheme({
   colorSchemes: { light: true, dark: true },
   breakpoints: { values: { xs: 0, sm: 600, md: 600, lg: 1200, xl: 1536 } },
 });
-
-// ---- Mock Data ----
-const user = {
-  name: "John Doe",
-  rollNo: "123456",
-  email: "john@iitgn.ac.in",
-  image: "https://avatars.githubusercontent.com/u/19550456",
-};
 
 // ---- Toolbar ----
 function CustomToolbarActions() {
@@ -86,7 +78,7 @@ function SidebarFooterAccountPopover() {
       <AccountPopoverFooter>
         <SignOutButton
           onClick={() => {
-            dispatch(logout());
+            dispatch(logoutUser());
             navigate("/login");
           }}
         />
@@ -150,7 +142,7 @@ export default function Dashboard() {
         setSession({
           user: { name, email, image: userPfp },
         }),
-      signOut: () => dispatch(logout()),
+      signOut: () => dispatch(logoutUser()),
     }),
     []
   );
