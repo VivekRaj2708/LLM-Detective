@@ -6,11 +6,14 @@ import NotFoundPage from "./Pages/404";
 import { loadUserFromCookie } from "./Store/Login";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "./Store";
+import { useEffect } from "react";
 
 
 function Router() {
   const dispatch = useDispatch<AppDispatch>();
   dispatch(loadUserFromCookie());
+
+  useEffect(() => {}, [dispatch]);
   
   return (
     <HashRouter>

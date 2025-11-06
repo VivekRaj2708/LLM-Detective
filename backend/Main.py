@@ -41,7 +41,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from Database.Credentials import MONGO_URL, MONGODB_DB_NAME
 from Auth.Route import EmailInput, login_route
 from Auth.JWT import get_current_user
-from Routes.ProjectManager import NewProject
+from Routes.ProjectManager import GetUserProjects, NewProject
 
 
 client = AsyncIOMotorClient(MONGO_URL)
@@ -542,6 +542,15 @@ async def project_upload(
         # Delegate to the core logic function, passing the span
     return await NewProject(zip_file, project_name, current_user, 
                             users_collection, documents_collection, projects_collection)
+
+@app.get("/api/project")
+async def GetProject(current_user: Dict = Depends(get_current_user)):
+    with tracer.start_as_current_span("GetProject") as span:
+        span.set_attribute("user.email", current_user.get("sub", "Error"))
+        span.set_attribute("user.id", current_user.get("id", "Error"))
+
+    return await GetUserProjects(current_user, projects_collection, users_collection)
+     
 
 if __name__ == "__main__":
     import uvicorn

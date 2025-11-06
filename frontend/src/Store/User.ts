@@ -1,11 +1,10 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
-import CryptoJS from "crypto-js";
+import { aesEncrypt, aesDecrypt } from "../Utils/Encryption";
 
 // --- Configuration ---
 const USER_STORAGE_KEY = 'encrypted_user_state';
-// IMPORTANT: This key must be securely managed and is a placeholder here.
-const ENCRYPTION_SECRET_KEY = "MyUltraSecure256BitKey!123456"; 
+
 
 export interface UserState {
   id: string | null;
@@ -15,57 +14,6 @@ export interface UserState {
   projects: string[];
 }
 
-// --- Local Storage and AES Encryption Utilities (Mock) ---
-
-/**
- * Mocks an AES encryption process using the defined secret key.
- * In a real application, this must be replaced with a secure cryptographic library (e.g., crypto-js).
- */
-const aesEncrypt = (data: UserState): string => {
-    try {
-        const jsonString = JSON.stringify(data);
-        
-        // --- REAL AES IMPLEMENTATION GOES HERE ---
-        // Example with a typical library API (e.g., CryptoJS):
-        const ciphertext = CryptoJS.AES.encrypt(jsonString, ENCRYPTION_SECRET_KEY).toString();
-        return ciphertext;
-        
-        // MOCK: Simple Base64 encoding for self-contained execution
-        // return btoa(jsonString);
-    } catch (e) {
-        console.error("AES Encryption failed:", e);
-        return '';
-    }
-};
-
-/**
- * Mocks an AES decryption process using the defined secret key.
- */
-const aesDecrypt = (encryptedData: string): UserState | null => {
-    try {
-        // --- REAL AES IMPLEMENTATION GOES HERE ---
-        // Example with a typical library API (e.g., CryptoJS):
-        const bytes = CryptoJS.AES.decrypt(encryptedData, ENCRYPTION_SECRET_KEY);
-        const jsonString = bytes.toString(CryptoJS.enc.Utf8);
-
-        // MOCK: Simple Base64 decoding
-        // const jsonString = atob(encryptedData);
-
-        const parsedData = JSON.parse(jsonString);
-        // Validate structure to ensure it's a UserState
-        // The check allows id to be string or null
-        if (parsedData && (typeof parsedData.id === 'string' || parsedData.id === null)) {
-            return parsedData as UserState;
-        }
-        return null;
-    } catch (e) {
-        // Data corrupted, key wrong, or not valid AES ciphertext
-        console.warn("AES Decryption failed (Corrupted data or invalid key). Clearing local data.", e);
-        localStorage.removeItem(USER_STORAGE_KEY);
-        return null;
-    }
-};
-
 /**
  * Checks localStorage for existing user state and loads it via AES decryption.
  */
@@ -73,13 +21,17 @@ const loadInitialState = (): UserState => {
     const encryptedData = localStorage.getItem(USER_STORAGE_KEY);
     
     if (encryptedData) {
-        const decryptedUser = aesDecrypt(encryptedData);
+      try {
+        const decryptedUser = aesDecrypt<UserState>(encryptedData);
         
         // Only return if a valid user object with an ID exists
         if (decryptedUser && decryptedUser.id) {
             console.log("User state loaded and decrypted from local storage.");
             return decryptedUser;
         }
+      } catch (error) {
+        console.error("Failed to decrypt or parse user state from local storage:", error);
+      }
     }
     
     // Default empty state
@@ -110,7 +62,7 @@ export const userSlice = createSlice({
             state.projects = action.payload.projects;
             
             // Side effect: Encrypt (AES mock) and store data in local storage
-            const encryptedData = aesEncrypt(action.payload);
+            const encryptedData = aesEncrypt<UserState>(action.payload);
             localStorage.setItem(USER_STORAGE_KEY, encryptedData);
         },
         clearUser: (state) => {
@@ -130,7 +82,7 @@ export const userSlice = createSlice({
             // Side effect: Update storage value in local storage copy
             const updatedState: UserState = { ...state, storage: action.payload };
             // Encrypt and save the updated state
-            const encryptedData = aesEncrypt(updatedState);
+            const encryptedData = aesEncrypt<UserState>(updatedState);
             localStorage.setItem(USER_STORAGE_KEY, encryptedData);
         },
     },

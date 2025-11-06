@@ -12,8 +12,6 @@ import {
 import {
   Account,
   AccountPreview,
-  AccountPopoverFooter,
-  SignOutButton,
   type AccountPreviewProps,
 } from "@toolpad/core/Account";
 import type { Navigation, Router, Session } from "@toolpad/core/AppProvider";
@@ -32,6 +30,10 @@ import QuickDetection from "../Components/Quick";
 import { useNavigate } from "react-router-dom";
 import TimelapseIcon from "@mui/icons-material/Timelapse";
 import AdvancedRun from "../Components/Advanced";
+import { refreshProjects } from "../Store/Projects";
+import { Button } from "@mui/material";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import LogoutIcon from "@mui/icons-material/Logout";
 
 // ---- Navigation ----
 const NAVIGATION: Navigation = [
@@ -72,17 +74,66 @@ function AccountSidebarPreview(props: AccountPreviewProps & { mini: boolean }) {
 function SidebarFooterAccountPopover() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
+  const JWTToken = useSelector((state: RootState) => state.login.JWTToken);
+
+  function handleRefresh(event: React.MouseEvent<HTMLButtonElement>): void {
+    event.preventDefault();
+    if (JWTToken) {
+      dispatch(refreshProjects({ authToken: JWTToken, force: true }));
+    }
+  }
 
   return (
-    <Stack direction="column">
-      <AccountPopoverFooter>
-        <SignOutButton
-          onClick={() => {
-            dispatch(logoutUser());
-            navigate("/login");
-          }}
-        />
-      </AccountPopoverFooter>
+    <Stack sx={{ m: 1 }}>
+      {/* <AccountPopoverFooter> */}
+      {/* New Refresh Data Button */}
+      <Button
+        onClick={handleRefresh}
+        startIcon={<RefreshIcon />}
+        fullWidth
+        sx={{
+          mb: 1,
+          justifyContent: "flex-start",
+          // Cyan color for data refresh action
+          color: "#00FFFF",
+          fontWeight: 600,
+          fontSize: "0.875rem", // Smaller font size
+          fontFamily: "Inter, sans-serif", // Changed font family
+          border: "1px solid rgba(255, 255, 255, 0.2)", // Added border
+          borderRadius: "8px", // Added rounded corners
+          "&:hover": {
+            backgroundColor: "rgba(0, 255, 255, 0.1)",
+            border: "1px solid #00FFFF", // Highlight border on hover
+          },
+        }}
+      >
+        Refresh Project Data
+      </Button>
+
+      <Button
+        onClick={() => {
+          dispatch(logoutUser());
+          navigate("/login");
+        }}
+        startIcon={<LogoutIcon />} // Icon is already included
+        fullWidth
+        sx={{
+          color: "#f87171", // Red color for sign out
+          justifyContent: "flex-start",
+          fontWeight: 600,
+          fontSize: "0.875rem", // Smaller font size
+          fontFamily: "Inter, sans-serif", // Changed font family
+          border: "1px solid rgba(255, 255, 255, 0.2)", // Added border
+          borderRadius: "8px", // Added rounded corners
+          "&:hover": {
+            backgroundColor: "rgba(248, 113, 113, 0.1)",
+            border: "1px solid #f87171", // Highlight border on hover
+          },
+        }}
+      >
+        Sign Out
+      </Button>
+      {/* </AccountPopoverFooter> */}
     </Stack>
   );
 }
@@ -110,8 +161,8 @@ function SidebarFooterAccount({ mini }: SidebarFooterProps) {
 
 // ---- Dashboard Layout ----
 export default function Dashboard() {
-  // const loggedIn = useSelector((state: RootState) => state.login.isLoggedIn);
-  const loggedIn = true; // TODO:--- IGNORE ---
+  const loggedIn = useSelector((state: RootState) => state.login.isLoggedIn);
+  const JWTToken = useSelector((state: RootState) => state.login.JWTToken);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const name = useSelector((state: RootState) => state.user.name);
@@ -130,6 +181,8 @@ export default function Dashboard() {
   React.useEffect(() => {
     if (!loggedIn) {
       navigate("/");
+    } else if (loggedIn && JWTToken) {
+      dispatch(refreshProjects({ authToken: JWTToken }));
     }
   }, [loggedIn, navigate]);
 

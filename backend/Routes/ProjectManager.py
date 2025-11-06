@@ -12,6 +12,7 @@ from motor.motor_asyncio import AsyncIOMotorCollection
 from Database.Document import RegisterDocument
 from Database.Project import RegisterProject
 from bson.int64 import Int64
+from Database.User import get_all_user_projects
 
 
 # New Project
@@ -101,3 +102,32 @@ async def NewProject(
         except Exception as e:
             raise HTTPException(
                 status_code=500, detail=f"Internal server error during processing: {str(e)}")
+
+async def GetUserProjects(
+    current_user: Dict,
+    project_collection: AsyncIOMotorCollection,
+    user_collection: AsyncIOMotorCollection
+):
+    """
+    Retrieves all projects associated with the current user.
+    """
+
+
+    try:
+        project_ids = await user_collection.find_one(
+            {"_id": current_user["id"]},
+            {"projects": 1}
+        )
+        projects = await get_all_user_projects(
+            project_ids["projects"], project_collection)
+
+        return JSONResponse({
+            "message": "User projects retrieved successfully",
+            "projects": projects
+        })
+
+    except ValueError as ve:
+        raise HTTPException(status_code=404, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Internal server error: {str(e)}")

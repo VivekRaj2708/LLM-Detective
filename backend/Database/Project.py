@@ -12,7 +12,8 @@ async def RegisterProject(
         "id": str(uuid4()),
         "name": project_name,
         "path": project_path,
-        "documents": documents
+        "documents": documents,
+        "status": "Upload"
     }
     result = await project_collection.insert_one(new_project)
     return str(result.inserted_id)
