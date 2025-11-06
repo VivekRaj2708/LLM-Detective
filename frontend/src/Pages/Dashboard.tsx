@@ -34,12 +34,14 @@ import { refreshProjects } from "../Store/Projects";
 import { Button } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import LogoutIcon from "@mui/icons-material/Logout";
+import ProjectDetailsDashboard from "../Components/Project";
 
 // ---- Navigation ----
 const NAVIGATION: Navigation = [
   { kind: "header", title: "Main items" },
   { segment: "dashboard", title: "Dashboard", icon: <DashboardIcon /> },
   { segment: "project", title: "New Project", icon: <AddToQueueIcon /> },
+  { segment: "projectManager", title: "Manager", icon: <RocketLaunchIcon /> },
   { segment: "quick", title: "Quick File Check", icon: <RocketLaunchIcon /> },
   { segment: "advanced", title: "Advanced Scan", icon: <TimelapseIcon /> },
 ];
@@ -256,6 +258,7 @@ export default function Dashboard() {
               {pathname === "/project" && <Project />}
               {pathname === "/quick" && <QuickDetection />}
               {pathname === "/advanced" && <AdvancedRun />}
+              {pathname === "/projectManager" && <ProjectDetailsDashboard />}
             </DashboardLayout>
           </Box>
         </Box>
