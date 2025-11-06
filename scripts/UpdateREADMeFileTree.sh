@@ -1,40 +1,47 @@
 #!/bin/bash
-# update_project_architecture.sh
-# Usage: ./update_project_architecture.sh [path_to_readme]
+# Safely updates the "## Project Architecture" section in a Markdown file.
 
 README_FILE=${1:-README.md}
+BACKUP_FILE="${README_FILE}.bak"
 
-# Ensure 'tree' is installed
-if ! command -v tree &> /dev/null; then
-    echo "Error: 'tree' command not found. Please install it (sudo apt install tree)."
+# Ensure the file exists
+if [ ! -f "$README_FILE" ]; then
+    echo "Error: $README_FILE not found!"
     exit 1
 fi
 
-# Generate the new directory structure
-NEW_TREE=$(tree -I "node_modules|venv|test|__pycache__" -L 9)
+# Ensure 'tree' exists
+if ! command -v tree >/dev/null 2>&1; then
+    echo "Error: 'tree' command not found. Install it with: sudo apt install tree"
+    exit 1
+fi
 
-# Escape backticks and dollar signs for safe substitution
-ESCAPED_TREE=$(printf '%s\n' "$NEW_TREE" | sed -e 's/\\/\\\\/g' -e 's/`/\\`/g' -e 's/\$/\\$/g')
+# Backup the original README
+cp "$README_FILE" "$BACKUP_FILE"
+echo "Backup created at $BACKUP_FILE"
 
-# Use awk to replace the section in the markdown
-awk -v new_tree="$ESCAPED_TREE" '
-BEGIN { in_section=0 }
-{
-    if ($0 ~ /^## 📁 Project Architecture/) {
-        print $0
-        print ""
-        print "```"
-        print new_tree
-        print "```"
-        in_section=1
-        next
+# Generate the directory tree (excluding common dirs)
+TREE_OUTPUT=$(tree -I "node_modules|venv|test|__pycache__" -L 9)
+
+# Escape slashes and ampersands for sed
+ESCAPED_TREE=$(printf '%s\n' "$TREE_OUTPUT" | sed -e 's/[\/&]/\\&/g')
+
+# Check if section exists
+if grep -q "^## Project Architecture" "$README_FILE"; then
+    # Replace existing section between headings
+    sed -i -E "/^## Project Architecture/,/^## /{
+    /^## Project Architecture/{
+        p
+        a\\
+\`\`\`\\
+$ESCAPED_TREE\\
+\`\`\`
     }
-    if (in_section && /^## / && $0 !~ /^## 📁 Project Architecture/) {
-        in_section=0
-    }
-    if (!in_section || /^## 📁 Project Architecture/) next
-    print $0
-}
-' "$README_FILE" > "${README_FILE}.tmp" && mv "${README_FILE}.tmp" "$README_FILE"
+    d
+    }" "$README_FILE"
+else
+    # Append section if not present
+    echo -e "\n## Project Architecture\n\n\`\`\`\n$TREE_OUTPUT\n\`\`\`\n" >> "$README_FILE"
+fi
 
-echo "✅ Updated '## 📁 Project Architecture' section in $README_FILE"
+echo "README updated successfully!"
