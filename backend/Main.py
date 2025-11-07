@@ -7,7 +7,6 @@ from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from pyparsing import Any, Dict
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from PyPDF2 import PdfMerger, PdfReader
@@ -35,6 +34,7 @@ from reportlab.lib.colors import Color
 import re
 
 from Utils.PDF import HighlightParagraphs, HighlightSentences, highlight_paragraphs
+from typing import Dict
 
 # Databases
 from motor.motor_asyncio import AsyncIOMotorClient

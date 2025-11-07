@@ -87,7 +87,7 @@ interface ModelOption {
 // --- Mock Data & Constants ---
 
 const MOCK_PROJECT_DATA: ProjectData = {
-  id: "PROJ-12345",
+  id: "IITGN-690db9d2a29c6e1666a99ff9",
   name: "Advanced Content Integrity Report Q4",
   sizeMB: 512.8,
   plagiarismScore: 18,
@@ -224,11 +224,14 @@ const getProjectPlagiarismData = (score: number, hasScannedDocs: boolean) => {
   ];
 };
 
-const getProjectAIBreakdownPieData = (breakdown: ClassificationBreakdown, hasScannedDocs: boolean) => {
+const getProjectAIBreakdownPieData = (
+  breakdown: ClassificationBreakdown,
+  hasScannedDocs: boolean
+) => {
   if (!hasScannedDocs) {
     return [{ name: "No Data", value: 100, color: "#6B7280" }];
   }
-  
+
   const data = [
     {
       name: "AI Generated",
@@ -251,12 +254,12 @@ const getProjectAIBreakdownPieData = (breakdown: ClassificationBreakdown, hasSca
       color: AI_BREAKDOWN_COLORS.Uncertain,
     },
   ].filter((item) => item.value > 0);
-  
+
   // If all values are 0, show "No Data"
   if (data.length === 0) {
     return [{ name: "No Data", value: 100, color: "#6B7280" }];
   }
-  
+
   return data;
 };
 
@@ -424,12 +427,15 @@ const ProjectDetailsDashboard: React.FC = () => {
     () => calculateProjectAIBreakdown(projectData.documents),
     [projectData.documents]
   );
-  
+
   const overallPlagiarismData = useMemo(() => {
     const hasScannedDocs = scannedCount > 0;
-    return getProjectPlagiarismData(projectData.plagiarismScore, hasScannedDocs);
+    return getProjectPlagiarismData(
+      projectData.plagiarismScore,
+      hasScannedDocs
+    );
   }, [projectData.plagiarismScore, scannedCount]);
-  
+
   const overallAIBreakdownData = useMemo(() => {
     const hasScannedDocs = scannedCount > 0;
     return getProjectAIBreakdownPieData(overallAIBreakdown, hasScannedDocs);
@@ -463,6 +469,50 @@ const ProjectDetailsDashboard: React.FC = () => {
           <GlassCard>
             <Grid container spacing={3}>
               {/* Project Info */}
+              {/* @ts-expect-error */}
+              <Grid item size={4}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+                  <Box
+                    sx={{
+                      background:
+                        "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
+                      borderRadius: "12px",
+                      p: 1.5,
+                      mr: 2,
+                      display: "flex",
+                    }}
+                  >
+                    <AssignmentTurnedInIcon
+                      sx={{ color: "white", fontSize: 24 }}
+                    />
+                  </Box>
+                  <Box>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "rgba(255,255,255,0.6)",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                        fontWeight: 600,
+                        fontSize: "0.7rem",
+                      }}
+                    >
+                      Project ID
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        fontWeight: 700,
+                        color: "white",
+                        fontSize: "0.95rem",
+                      }}
+                    >
+                      {projectData.id}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Grid>
+
               {/* @ts-expect-error */}
               <Grid item size={4}>
                 <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
@@ -588,8 +638,8 @@ const ProjectDetailsDashboard: React.FC = () => {
               </Grid>
 
               {/* Plagiarism Risk */}
-              {/* @ts-expect-error */}
-              <Grid item size={4}>
+
+              {/* <Grid item size={4}>
                 <Box sx={{ display: "flex", alignItems: "center", mb: 1.5 }}>
                   <Box
                     sx={{
@@ -641,7 +691,7 @@ const ProjectDetailsDashboard: React.FC = () => {
                     },
                   }}
                 />
-              </Grid>
+              </Grid> */}
             </Grid>
 
             {/* Model Configuration Section */}
@@ -651,7 +701,7 @@ const ProjectDetailsDashboard: React.FC = () => {
                 pt: 3,
                 mb: 4,
                 borderTop: "1px solid rgba(255,255,255,0.1)",
-                width: "100%"
+                width: "100%",
               }}
             >
               <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
@@ -675,7 +725,12 @@ const ProjectDetailsDashboard: React.FC = () => {
                 </Typography>
               </Box>
 
-              <Grid container spacing={3} alignItems="center" sx={{ width: "100%" }}>
+              <Grid
+                container
+                spacing={3}
+                alignItems="center"
+                sx={{ width: "100%" }}
+              >
                 {/* @ts-expect-error */}
                 <Grid item size={4}>
                   <FormControl fullWidth variant="outlined">

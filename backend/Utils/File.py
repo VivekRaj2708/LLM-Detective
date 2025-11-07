@@ -10,8 +10,8 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from io import BytesIO
 
-UPLOAD_DIR = "uploads"
-EXTRACT_DIR = "uploads"
+UPLOAD_DIR = "Static/uploads"
+EXTRACT_DIR = "Static/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 import os

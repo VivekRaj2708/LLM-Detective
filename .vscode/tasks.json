@@ -15,7 +15,7 @@
     {
       "label": "Run Model API",
       "type": "shell",
-      "command": "source /home/vivek/NLP/backend/venv/bin/activate && cd ./model && python3 API.py",
+      "command": "source /home/vivek/NLP/.venv/bin/activate && cd ./model && python3 API.py",
       "presentation": {
         "panel": "dedicated",
         "group": "servers",
@@ -26,7 +26,7 @@
     {
       "label": "Run Backend",
       "type": "shell",
-      "command": "source /home/vivek/NLP/backend/venv/bin/activate && cd ./backend && python3 Main.py",
+      "command": "source /home/vivek/NLP/.venv/bin/activate && cd ./backend && python3 Main.py",
       "presentation": {
         "panel": "dedicated",
         "group": "servers",
@@ -38,17 +38,6 @@
       "label": "Run Frontend",
       "type": "shell",
       "command": "cd ./frontend && npm run dev",
-      "presentation": {
-        "panel": "dedicated",
-        "group": "servers",
-        "clear": true
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run MongoDB",
-      "type": "shell",
-      "command": "sudo systemctl start mongodb",
       "presentation": {
         "panel": "dedicated",
         "group": "servers",
