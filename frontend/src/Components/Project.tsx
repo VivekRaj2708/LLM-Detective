@@ -32,12 +32,10 @@ import {
 import DescriptionIcon from "@mui/icons-material/Description";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import StraightenIcon from "@mui/icons-material/Straighten";
 import SettingsIcon from "@mui/icons-material/Settings";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 
 // Recharts for the visual analysis
 import {
@@ -46,12 +44,7 @@ import {
   Cell,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
-  Legend,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  Legend
 } from "recharts";
 
 // --- Type Definitions ---
@@ -441,6 +434,7 @@ const ProjectDetailsDashboard: React.FC = () => {
     return getProjectAIBreakdownPieData(overallAIBreakdown, hasScannedDocs);
   }, [overallAIBreakdown, scannedCount]);
 
+  //@ts-ignore
   const handleRefresh = () => {
     console.log(`Refreshing data for project ${projectId}...`);
     setProjectData({
