@@ -6,42 +6,42 @@
       "type": "shell",
       "command": "jaeger-all-in-one",
       "presentation": {
-        "panel": "dedicated",
-        "group": "servers",
-        "clear": true
+        "panel": "new",            // ⬅️ opens in new terminal
+        "clear": true,
+        "reveal": "always"
       },
       "problemMatcher": []
     },
     {
       "label": "Run Model API",
       "type": "shell",
-      "command": "source /home/vivek/NLP/.venv/bin/activate && cd ./model && python3 API.py",
+      "command": "bash -c 'source /home/vivek/NLP/.venv/bin/activate && cd ./model && uvicorn API:app --reload --host 127.0.0.1 --port 5000 --log-level debug'",
       "presentation": {
-        "panel": "dedicated",
-        "group": "servers",
-        "clear": true
+        "panel": "new",
+        "clear": true,
+        "reveal": "always"
       },
       "problemMatcher": []
     },
     {
       "label": "Run Backend",
       "type": "shell",
-      "command": "source /home/vivek/NLP/.venv/bin/activate && cd ./backend && python3 Main.py",
+      "command": "bash -c 'source /home/vivek/NLP/.venv/bin/activate && cd ./backend && uvicorn Main:app --reload --host 127.0.0.1 --port 8000 --log-level debug'",
       "presentation": {
-        "panel": "dedicated",
-        "group": "servers",
-        "clear": true
+        "panel": "new",
+        "clear": true,
+        "reveal": "always"
       },
       "problemMatcher": []
     },
     {
       "label": "Run Frontend",
       "type": "shell",
-      "command": "cd ./frontend && npm run dev",
+      "command": "bash -c 'cd ./frontend && npm run dev'",
       "presentation": {
-        "panel": "dedicated",
-        "group": "servers",
-        "clear": true
+        "panel": "new",
+        "clear": true,
+        "reveal": "always"
       },
       "problemMatcher": []
     },

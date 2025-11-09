@@ -42,6 +42,7 @@ from Database.Credentials import MONGO_URL, MONGODB_DB_NAME
 from Auth.Route import EmailInput, login_route
 from Auth.JWT import get_current_user
 from Routes.ProjectManager import GetUserProjects, NewProject
+from Routes.Sheduler import analyze_websocket
 
 
 client = AsyncIOMotorClient(MONGO_URL)
@@ -550,7 +551,10 @@ async def GetProject(current_user: Dict = Depends(get_current_user)):
         span.set_attribute("user.id", current_user.get("id", "Error"))
 
     return await GetUserProjects(current_user, projects_collection, users_collection)
-     
+
+@app.websocket("/ws/analyze")
+async def Analyser(websocket: WebSocket):
+   return await analyze_websocket(websocket)
 
 if __name__ == "__main__":
     import uvicorn
