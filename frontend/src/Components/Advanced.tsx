@@ -24,7 +24,7 @@ import {
 ChartJS.register(ArcElement, ChartTooltip, Legend);
 
 // --- TYPE DEFINITIONS & CONSTANTS ---
-type ColorKey = 0 | 1 | 2 | 3 | 4 | 5;
+type ColorKey = 0 | 1 | 2 | 3 | 4;
 type RawChunk = [string, ColorKey];
 
 interface ChunkCounts {
@@ -33,7 +33,6 @@ interface ChunkCounts {
   2: number;
   3: number;
   4: number;
-  5: number;
   total: number; // Total weighted characters
 }
 
@@ -46,29 +45,25 @@ const API_ENDPOINT = "http://localhost:5000/api/pdf/actual";
 
 // CONVERTED: Color map using hex codes derived from the user's requested RGB tuples
 const colorMap: Record<ColorKey, string> = {
-  0: "#FF9999", // (1.0, 0.6, 0.6) - Light Red - AI
-  1: "#99FF99", // (0.6, 1.0, 0.6) - Light Green - Humanised
-  2: "#9999FF", // (0.6, 0.6, 1.0) - Light Blue - Human
-  3: "#FFFF99", // (1.0, 1.0, 0.6) - Light Yellow - Polished
-  4: "#FFCC99", // (1.0, 0.8, 0.6) - Light Orange - Undetermined
-  5: "#CC99FF", // (0.8, 0.6, 1.0) - Light Purple - New Category
+  0: "#99FF99", // (1.0, 0.6, 0.6) - Light Green - Humanise
+  1: "#9999FF", // (0.6, 1.0, 0.6) - Light Blue - Polished 
+  2: "#FF9999", // (0.6, 0.6, 1.0) - Light Red - AI
+  3: "#FFFF99", // (1.0, 1.0, 0.6) - Light Yellow - Humanised
+  4: "#fff", // (1.0, 0.8, 0.6) - Light Orange - Undetermined
 };
-
 // Helper function to map ColorKey to a readable name
 function colorKeyToName(key: ColorKey): string {
   switch (key) {
     case 0:
-      return "AI";
-    case 1:
-      return "Humanised";
-    case 2:
       return "Human";
+    case 1:
+      return "Machine Polished";
+    case 2:
+      return "AI Generated";
     case 3:
-      return "Polished";
+      return "Machine Humanised";
     case 4:
       return "Undetermined";
-    case 5:
-      return "New Category";
     default:
       return "Unknown";
   }
@@ -116,7 +111,6 @@ const initialChunkCounts: ChunkCounts = {
   2: 0,
   3: 0,
   4: 0,
-  5: 0,
   total: 0,
 };
 

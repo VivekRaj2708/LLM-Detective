@@ -25,6 +25,7 @@ import { useSelector } from "react-redux";
 import type { RootState } from "../Store";
 import { ProjectStoreToRow } from "../Utils/TypeCast";
 import noProject from "../assets/NoProject.svg";
+import { bytesToMB } from "../Utils/DataConversion";
 
 // --- NEW Data Interfaces ---
 
@@ -32,7 +33,7 @@ export interface ProjectRow {
   id: string;
   title: string;
   lastScanDate: string;
-  status: "Completed" | "Scanning" | "Failed";
+  status: "Completed" | "Scanning" | "Failed" | "Upload";
 }
 
 interface AIDashboardProps {
@@ -48,6 +49,7 @@ const statusColors: Record<ProjectRow["status"], "success" | "info" | "error"> =
     Completed: "success",
     Scanning: "info",
     Failed: "error",
+    Upload: "info",
   };
 
 // Helper to calculate days ago (still useful for 'Last Scan Date')
@@ -58,7 +60,10 @@ const getDaysAgo = (dateStr: string) => {
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 };
 
-const formatDateWithSuffix = (dateStr: string) => {
+const formatDateWithSuffix = (dateStr: string | undefined) => {
+  console.log("Formatting date:", dateStr);
+  if (!dateStr) return "N/A";
+
   const date = new Date(dateStr);
   const day = date.getDate();
   const month = date.toLocaleString("default", { month: "long" });
@@ -131,6 +136,12 @@ const GlassCard = ({ children }: { children: React.ReactNode }) => (
   </Card>
 );
 
+function GetDisplayStorage(usedStorageMB: number, totalStorageGB: number) {
+  if (usedStorageMB / (totalStorageGB * 1000) >= 0.97) {
+    return `⚠️ ${(usedStorageMB / 1000).toFixed(2)} GB / ${totalStorageGB} GB`;
+  }
+  return `${usedStorageMB.toFixed(1)} MB / ${totalStorageGB} GB`;
+}
 // --- NEW Dashboard Cards Component ---
 
 function AIDetectionDashboardCards({
@@ -138,11 +149,12 @@ function AIDetectionDashboardCards({
   totalStorageGB,
   usedStorageGB,
 }: AIDashboardProps) {
+  const usedStorageMB = bytesToMB(usedStorageGB);
   const totalProjects = projectHistory.length;
   const activeProjects = projectHistory.filter(
     (row) => row.status === "Scanning"
   ).length;
-  const storagePercentage = Math.round((usedStorageGB / totalStorageGB) * 100);
+  const storagePercentage = Math.round((usedStorageMB / totalStorageGB) * 0.1);
 
   const lastCompletedProject = projectHistory
     .filter((row) => row.status === "Completed")
@@ -165,7 +177,7 @@ function AIDetectionDashboardCards({
             variant="subtitle1"
             sx={{ color: "white", fontWeight: 500 }}
           >
-            Total Projects Scanned
+            Total Projects
           </Typography>
           <Typography variant="h4" sx={{ color: "white", fontWeight: 700 }}>
             {totalProjects}
@@ -214,7 +226,7 @@ function AIDetectionDashboardCards({
             >
               <Typography
                 variant="caption"
-                sx={{ color: "white", fontWeight: 700 }}
+                sx={{ color: "white", fontWeight: 700, fontSize: "1rem" }}
               >
                 {storagePercentage}%
               </Typography>
@@ -227,7 +239,7 @@ function AIDetectionDashboardCards({
             Storage Used
           </Typography>
           <Typography variant="h6" sx={{ color: "white", fontWeight: 600 }}>
-            {usedStorageGB.toFixed(1)} GB / {totalStorageGB} GB
+            {GetDisplayStorage(usedStorageMB, totalStorageGB)}
           </Typography>
         </Box>
       </GlassCard>
@@ -266,43 +278,68 @@ function AIDetectionDashboardCards({
 }
 
 // --- Main Dashboard Component ---
-
 export default function AIDetectionDashboard() {
   const [page, setPage] = useState(0);
-  const rowsPerPage = 3; // Increased rows per page for a larger table
-
+  const rowsPerPage = 3;
   const usedStorageGB = useSelector((state: RootState) => state.user.storage);
   const projectHistory = ProjectStoreToRow(
     useSelector((state: RootState) => state.project.projects)
   );
+  const projectLoad = useSelector((state: RootState) => state.project.status);
 
   const handleChangePage = (_: unknown, newPage: number) => setPage(newPage);
 
   return (
-    <Box
-      sx={{
-        p: 4,
-        minHeight: "80vh",
-      }}
-    >
-      {/* Cards */}
+    <Box sx={{ p: 4, minHeight: "80vh", position: "relative" }}>
+      {/* --- Dashboard Summary Cards --- */}
       <AIDetectionDashboardCards
         projectHistory={projectHistory}
         totalStorageGB={5}
         usedStorageGB={usedStorageGB}
       />
 
-      {/* Project History Table */}
-      {projectHistory.length === 0 ? (
+      {/* --- Conditional Main Display --- */}
+      {projectLoad === "loading" ? (
+        // 🌐 Loading View
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "350px",
+            maxWidth: "1000px",
+            mx: "auto",
+            mt: 6,
+            borderRadius: "1rem",
+            backdropFilter: "blur(20px)",
+            background: "rgba(255,255,255,0.05)",
+            boxShadow: "0 8px 32px 0 rgba(0,0,0,0.25)",
+            color: "white",
+            textAlign: "center",
+            p: 4,
+          }}
+        >
+          <CircularProgress size={60} sx={{ color: "#00FFFF", mb: 3 }} />
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Fetching your projects...
+          </Typography>
+          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.6)" }}>
+            Please wait while we load your project history.
+          </Typography>
+        </Box>
+      ) : projectHistory.length === 0 ? (
+        // 🧩 No Projects SVG Section
         <NoProjectsMessage />
       ) : (
+        // 📜 Table Section
         <TableContainer
           component={Paper}
           sx={{
             borderRadius: "1rem",
             marginTop: 6,
             overflow: "hidden",
-            maxWidth: "1000px", // Set max width for better centering
+            maxWidth: "1000px",
             mx: "auto",
             backdropFilter: "blur(20px)",
             background: "rgba(255,255,255,0.05)",
@@ -312,25 +349,21 @@ export default function AIDetectionDashboard() {
           <Table>
             <TableHead>
               <TableRow>
-                {[
-                  "Project ID",
-                  "Title",
-                  "Last Scan Date",
-                  "Status",
-                  "Actions",
-                ].map((head) => (
-                  <TableCell
-                    key={head}
-                    align="center"
-                    sx={{
-                      color: "#00FFFF",
-                      fontWeight: 700,
-                      borderBottom: "1px solid rgba(255,255,255,0.2)",
-                    }}
-                  >
-                    {head}
-                  </TableCell>
-                ))}
+                {["Project ID", "Title", "Last Scan Date", "Status", "Actions"].map(
+                  (head) => (
+                    <TableCell
+                      key={head}
+                      align="center"
+                      sx={{
+                        color: "#00FFFF",
+                        fontWeight: 700,
+                        borderBottom: "1px solid rgba(255,255,255,0.2)",
+                      }}
+                    >
+                      {head}
+                    </TableCell>
+                  )
+                )}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -340,12 +373,14 @@ export default function AIDetectionDashboard() {
                   <TableRow
                     key={row.id}
                     hover
-                    sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                    sx={{
+                      "&:last-child td, &:last-child th": { border: 0 },
+                    }}
                   >
                     <TableCell align="center" sx={{ color: "white" }}>
-                      {row.id}
+                      IITGN-{row.id.split("-")[1]}
                     </TableCell>
-                    <TableCell align="left" sx={{ color: "white" }}>
+                    <TableCell align="center" sx={{ color: "white" }}>
                       {row.title}
                     </TableCell>
                     <TableCell align="center" sx={{ color: "white" }}>
@@ -364,9 +399,8 @@ export default function AIDetectionDashboard() {
                           fontWeight: 600,
                           letterSpacing: 0.5,
                           backdropFilter: "blur(5px)",
-
                           background: (theme) =>
-                            `${theme.palette[statusColors[row.status]].light}1A`, // Light semi-transparent background
+                            `${theme.palette[statusColors[row.status]].light}1A`,
                           color: (theme) =>
                             theme.palette[statusColors[row.status]].light,
                         }}
@@ -405,30 +439,7 @@ export default function AIDetectionDashboard() {
           />
         </TableContainer>
       )}
-
-      {/* Note: The user object and CertificateModal are now removed as they are no longer relevant */}
     </Box>
   );
 }
 
-// EXAMPLE USAGE (Not part of the export, but useful for testing)
-/*
-const sampleProjects: ProjectRow[] = [
-  { id: 'PROJ-001', title: 'Thesis Draft V1.2', lastScanDate: '2024-10-20', status: 'Completed' },
-  { id: 'PROJ-002', title: 'Research Paper: Quantum Physics', lastScanDate: '2024-10-23', status: 'Scanning' },
-  { id: 'PROJ-003', title: 'Internal Policy Document', lastScanDate: '2024-10-15', status: 'Completed' },
-  { id: 'PROJ-004', title: 'Client Report Q3 2024', lastScanDate: '2024-10-10', status: 'Failed' },
-  { id: 'PROJ-005', title: 'Marketing Content Batch', lastScanDate: '2024-10-21', status: 'Completed' },
-  { id: 'PROJ-006', title: 'Security Audit Documentation', lastScanDate: '2024-09-28', status: 'Completed' },
-];
-
-const App = () => (
-  <AIDetectionDashboard 
-    projectHistory={sampleProjects} 
-    totalStorageGB={1000} 
-    usedStorageGB={980} // Example for RED alert
-    // usedStorageGB={860} // Example for YELLOW alert
-    // usedStorageGB={500} // Example for GREEN alert
-  />
-);
-*/

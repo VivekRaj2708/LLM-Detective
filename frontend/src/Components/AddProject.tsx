@@ -5,17 +5,28 @@ import {
   TextField,
   Button,
   LinearProgress,
+  Alert,
 } from "@mui/material";
 import FileUploadIcon from "@mui/icons-material/FileUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FolderZipIcon from "@mui/icons-material/FolderZip";
+import { useSelector } from "react-redux";
+import type { RootState } from "../Store";
+
+// --- Type Definitions ---
+
+type MessageState = {
+  type: "success" | "error";
+  text: string;
+} | null;
 
 // --- CONSTANTS ---
-const MAX_UPLOAD_SIZE_MB = 50;
-const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
+const API_URL: string = "http://localhost:5000/api/project/new";
+const MAX_UPLOAD_SIZE_MB: number = 50;
+const MAX_UPLOAD_SIZE_BYTES: number = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
 
 // --- Utility Functions ---
-const formatBytes = (bytes: number, decimals = 2) => {
+const formatBytes = (bytes: number, decimals: number = 2): string => {
   if (bytes === 0) return "0 Bytes";
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
@@ -24,30 +35,51 @@ const formatBytes = (bytes: number, decimals = 2) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 };
 
+// --- Styles ---
+const textFieldStyle = {
+  "& .MuiInputBase-input": { color: "white" },
+  "& .MuiInputLabel-root": { color: "white" },
+  "& .MuiOutlinedInput-root": {
+    "& fieldset": { borderColor: "white" },
+    "&:hover fieldset": { borderColor: "white" },
+    "&.Mui-focused fieldset": { borderColor: "white" },
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: "0.75rem",
+  },
+};
+
 // --- Add Project Form ---
-export default function AddProjectForm() {
-  const [projectName, setProjectName] = useState("");
+export default function App() {
+  const [projectName, setProjectName] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
-  const [dragActive, setDragActive] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [uploading, setUploading] = useState(false);
-  const [buttonText, setButtonText] = useState("Start Project Scan");
+  const [dragActive, setDragActive] = useState<boolean>(false);
+  const [uploading, setUploading] = useState<boolean>(false);
+  const [buttonText, setButtonText] = useState<string>("Start Project Scan");
+  const [message, setMessage] = useState<MessageState>(null);
+
+  // JWT Placeholder State (Simulating Redux/Context Load)
+  const jwtToken: string | null = useSelector(
+    (state: RootState) => state.login.JWTToken
+  );
 
   const isFileSizeValid = useMemo(
-    () => (file ? file.size <= MAX_UPLOAD_SIZE_BYTES : true),
+    (): boolean => (file ? file.size <= MAX_UPLOAD_SIZE_BYTES : true),
     [file]
   );
 
-  const handleFileChange = useCallback((selectedFile: File) => {
+  const handleFileChange = useCallback((selectedFile: File): void => {
     if (selectedFile.name.endsWith(".zip")) {
       setFile(selectedFile);
     } else {
-      console.error("Invalid file type uploaded. Must be a .zip file.");
+      setMessage({
+        type: "error",
+        text: "Invalid file type. Please select a .zip file.",
+      });
       setFile(null);
     }
   }, []);
 
-  const handleDrag = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrag = useCallback((e: React.DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
@@ -55,7 +87,7 @@ export default function AddProjectForm() {
   }, []);
 
   const handleDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
+    (e: React.DragEvent<HTMLDivElement>): void => {
       e.preventDefault();
       setDragActive(false);
       if (e.dataTransfer.files && e.dataTransfer.files[0])
@@ -64,106 +96,142 @@ export default function AddProjectForm() {
     [handleFileChange]
   );
 
-  const handleUpload = async () => {
-    if (!projectName || !file || !isFileSizeValid) return;
-    setUploading(true);
-    setButtonText("0% Uploading...");
-
-    const ws = new WebSocket("ws://localhost:5000/ws/upload");
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ folderName: projectName, fileSize: file.size }));
-
-      const chunkSize = 1024 * 1024;
-      let offset = 0;
-      const reader = new FileReader();
-
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          ws.send(event.target.result as ArrayBuffer); // send raw bytes
-          offset += chunkSize;
-          if (offset < file.size) readNextChunk();
-          else ws.send("__END__"); // signal end of file
-        }
-      };
-
-      const readNextChunk = () => {
-        const blob = file.slice(offset, offset + chunkSize);
-        reader.readAsArrayBuffer(blob);
-      };
-
-      readNextChunk();
-    };
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      setProgress(data.progress);
-      if (data.status === "uploading")
-        setButtonText(`${Math.round(data.progress)}% Uploading...`);
-      else if (data.status === "extracting")
-        setButtonText(`${Math.round(data.progress)}% Extracting...`);
-      else if (data.status === "done") {
-        setButtonText("Complete ✅");
-        setUploading(false);
-      }
-    };
-
-    ws.onclose = () => console.log("WebSocket closed");
+  const handleFileUploadInput = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ): void => {
+    if (e.target.files && e.target.files[0]) {
+      handleFileChange(e.target.files[0]);
+    }
   };
 
-  const textFieldStyle = {
-    "& .MuiInputBase-input": { color: "white" },
-    "& .MuiInputLabel-root": { color: "white" },
-    "& .MuiOutlinedInput-root": {
-      "& fieldset": { borderColor: "white" },
-      "&:hover fieldset": { borderColor: "white" },
-      "&.Mui-focused fieldset": { borderColor: "white" },
-      backgroundColor: "rgba(255,255,255,0.05)",
-      borderRadius: "0.75rem",
-    },
+  const handleUpload = async (
+    e: React.FormEvent<HTMLFormElement>
+  ): Promise<void> => {
+    e.preventDefault();
+
+    if (!jwtToken) {
+      setMessage({
+        type: "error",
+        text: "Authentication token is missing. Please log in again.",
+      });
+      return;
+    }
+
+    if (!projectName || !file || !isFileSizeValid || !jwtToken) {
+      setMessage({
+        type: "error",
+        text: "Project name and ZIP file are required.",
+      });
+      return;
+    }
+
+    setUploading(true);
+    setMessage(null);
+    setButtonText("Processing...");
+
+    const formData = new FormData();
+    formData.append("zip_file", file);
+    formData.append("project_name", projectName);
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+        },
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setButtonText("Complete ✅");
+        setMessage({
+          type: "success",
+          text: `Project '${result.project_name}' processed successfully. Extracted size: ${result.extracted_size_mb}.`,
+        });
+      } else {
+        const errorMessage: string =
+          result.detail || result.error || "An unknown server error occurred.";
+        setButtonText("Upload Failed ❌");
+        setMessage({
+          type: "error",
+          text: `Error (${response.status}): ${errorMessage}`,
+        });
+      }
+    } catch (error) {
+      setButtonText("Connection Error ❌");
+      setMessage({
+        type: "error",
+        text: `Network error: Could not connect to the server.`,
+      });
+      console.error("Upload error:", error);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
     <Box
       sx={{
-        p: { xs: 2, md: 4, lg: 8 },
-        minHeight: "80vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: "100vh",
         fontFamily: "Roboto, sans-serif",
+        p: 2,
       }}
     >
       <Box
         component="form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleUpload();
-        }}
+        onSubmit={handleUpload}
         sx={{
           flex: 1,
-          minWidth: 240,
+          maxWidth: 600,
+          minWidth: 300,
           backdropFilter: "blur(20px)",
-          background: "rgba(255,255,255,0.05)",
           border: "1px solid rgba(255,255,255,0.2)",
           borderRadius: "1.5rem",
           boxShadow: "0 8px 32px 0 rgba(0,0,0,0.25)",
-          p: 2,
+          p: { xs: 2, md: 4 },
         }}
       >
         <Typography
           variant="h5"
           sx={{ color: "white", fontWeight: 700, mb: 4, textAlign: "center" }}
         >
-          New Project
+          Secured Project Upload
         </Typography>
+
+        {message && (
+          <Alert
+            severity={message.type}
+            sx={{ mb: 3, borderRadius: "0.75rem" }}
+            onClose={() => setMessage(null)}
+          >
+            {message.text}
+          </Alert>
+        )}
 
         <TextField
           fullWidth
           label="Project Name"
           variant="outlined"
           value={projectName}
-          onChange={(e) => setProjectName(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setProjectName(e.target.value)
+          }
           required
           sx={{ mb: 3, ...textFieldStyle }}
         />
+
+        {/* JWT Token is assumed to be loaded from Redux/Context state and is NOT visible here. */}
+        {/* If the placeholder is empty, show a warning, but don't require user input */}
+        {!jwtToken && (
+          <Alert severity="warning" sx={{ mb: 3 }}>
+            Authentication token is missing. Please ensure your are authorised
+          </Alert>
+        )}
 
         <Box
           onDragEnter={handleDrag}
@@ -188,9 +256,7 @@ export default function AddProjectForm() {
             type="file"
             id="file-upload-input"
             accept=".zip"
-            onChange={(e) =>
-              e.target.files && handleFileChange(e.target.files[0])
-            }
+            onChange={handleFileUploadInput}
             style={{ display: "none" }}
           />
           {!file ? (
@@ -211,7 +277,7 @@ export default function AddProjectForm() {
               : "Drag and drop a ZIP folder here, or click to browse."}
           </Typography>
           <Typography variant="caption" sx={{ color: "gray.400" }}>
-            Accepted format: .zip
+            Accepted format: .zip (Max {MAX_UPLOAD_SIZE_MB} MB)
           </Typography>
         </Box>
 
@@ -225,14 +291,11 @@ export default function AddProjectForm() {
             }}
           >
             <Typography variant="subtitle2" sx={{ color: "white" }}>
-              File Size: {formatBytes(file.size)}
-            </Typography>
-            <Typography variant="subtitle2" sx={{ color: "gray.400" }}>
-              Allowed Size: {MAX_UPLOAD_SIZE_MB} MB
+              File Size: **{formatBytes(file.size)}**
             </Typography>
             {!isFileSizeValid && (
               <Typography variant="caption" color="error">
-                File exceeds the maximum limit!
+                File exceeds the maximum limit of {MAX_UPLOAD_SIZE_MB} MB!
               </Typography>
             )}
             <Button
@@ -250,7 +313,10 @@ export default function AddProjectForm() {
           fullWidth
           type="submit"
           variant="contained"
-          disabled={!projectName || !file || !isFileSizeValid || uploading}
+          // Disabled if missing project name, file, invalid size, or no JWT token
+          disabled={
+            !projectName || !file || !isFileSizeValid || uploading || !jwtToken
+          }
           sx={{
             bgcolor: "#05b2b2ff",
             color: "black",
@@ -263,22 +329,17 @@ export default function AddProjectForm() {
             "&.Mui-disabled": { bgcolor: "gray.700", color: "gray.400" },
           }}
         >
-          {buttonText}
-          {uploading && (
-            <LinearProgress
-              variant="determinate"
-              value={progress}
-              sx={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                width: "100%",
-                height: "4px",
-                borderRadius: "0 0 1rem 1rem",
-              }}
-            />
-          )}
+          {uploading ? "Uploading..." : buttonText}
         </Button>
+        {uploading && (
+          <LinearProgress
+            variant="indeterminate"
+            sx={{
+              mt: 1,
+              borderRadius: "0.5rem",
+            }}
+          />
+        )}
       </Box>
     </Box>
   );

@@ -2,7 +2,7 @@ import base64
 import io
 import json
 import os
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -26,20 +26,23 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
-from opentelemetry.trace import StatusCode # Import StatusCode
+from opentelemetry.trace import StatusCode  # Import StatusCode
 
 from Utils.Para import split_paragraph
 from Utils.File import UPLOAD_DIR, extract_zip
 from reportlab.lib.colors import Color
 import re
 
-from Utils.PDF import HighlightParagraphs, highlight_paragraphs
+from Utils.PDF import HighlightParagraphs, HighlightSentences, highlight_paragraphs
+from typing import Dict
 
-## Databases
+# Databases
 from motor.motor_asyncio import AsyncIOMotorClient
 from Database.Credentials import MONGO_URL, MONGODB_DB_NAME
 from Auth.Route import EmailInput, login_route
-
+from Auth.JWT import get_current_user
+from Routes.ProjectManager import GetUserProjects, NewProject
+from Routes.Sheduler import analyze_websocket
 
 
 client = AsyncIOMotorClient(MONGO_URL)
@@ -80,7 +83,7 @@ logger = logging.getLogger(__name__)
 # Initialize tracing
 # Give your service a name (this will appear in Jaeger)
 resource = Resource(attributes={
-    "service.name": "LLM-Detective" 
+    "service.name": "LLM-Detective"
 })
 
 provider = TracerProvider(resource=resource)
@@ -91,7 +94,6 @@ otlp_exporter = OTLPSpanExporter(
     endpoint="http://localhost:4317",  # default OTLP collector endpoint
     insecure=True
 )
-
 
 
 # Add the exporter to the tracer
@@ -124,6 +126,7 @@ async def run():
     logger.info("Run endpoint called")
     return JSONResponse({"message": "Run endpoint called"})
 
+
 @app.post("/highlight_pdf")
 async def highlight_pdf(file: UploadFile = File(...)):
     with tracer.start_as_current_span("highlight_pdf_endpoint") as span:
@@ -132,12 +135,12 @@ async def highlight_pdf(file: UploadFile = File(...)):
         span.set_attribute("endpoint.path", "/highlight_pdf")
         span.set_attribute("file.name", file.filename)
         span.set_attribute("file.content_type", file.content_type)
-        
+
         try:
             with tracer.start_as_current_span("read_file"):
                 pdf_bytes = await file.read()
                 span.add_event("File read successfully")
-            
+
             with tracer.start_as_current_span("highlight_paragraphs_utility"):
                 # Assuming highlight_paragraphs internally performs all the OCR, classification, and highlighting logic
                 highlighted_pdf = highlight_paragraphs(pdf_bytes)
@@ -156,39 +159,43 @@ async def highlight_pdf(file: UploadFile = File(...)):
 
         except Exception as e:
             # Set span status to ERROR and record exception details
-            span.set_status(StatusCode.ERROR, description="PDF Highlighting Failed")
+            span.set_status(StatusCode.ERROR,
+                            description="PDF Highlighting Failed")
             span.record_exception(e)
             span.set_attribute("error.message", str(e))
             return JSONResponse(content={
                 "status": "error",
                 "error": str(e)
             }, status_code=500)
-    
+
+
 @app.post("/api/ocr")
 async def ocr_endpoint(request: Request):
     with tracer.start_as_current_span("ocr_process") as span:
         span.set_attribute("http.request_type", "POST")
         span.set_attribute("endpoint.path", "/api/ocr")
-        
+
         data = await request.json()
         base64_image = data.get("image")
 
         if not base64_image:
-            span.set_status(StatusCode.ERROR, description="Missing Base64 image")
+            span.set_status(StatusCode.ERROR,
+                            description="Missing Base64 image")
             return JSONResponse({"error": "No image provided"}, status_code=400)
 
         span.set_attribute("image.size_kb", len(base64_image) // 1024)
         logger.info("OCR endpoint called")
-        
+
         try:
             with tracer.start_as_current_span("ocr_from_base64_call"):
                 extracted_text = ocr_from_base64(base64_image)
                 span.add_event("OCR text extracted")
-            
+
             return JSONResponse({"extracted_text": extracted_text})
-        
+
         except Exception as e:
-            span.set_status(StatusCode.ERROR, description="OCR Extraction Failed")
+            span.set_status(StatusCode.ERROR,
+                            description="OCR Extraction Failed")
             span.record_exception(e)
             span.set_attribute("error.message", str(e))
             return JSONResponse({"error": "Internal server error during OCR"}, status_code=500)
@@ -198,13 +205,14 @@ async def ocr_endpoint(request: Request):
 async def ocr_test(request: Request):
     return templates.TemplateResponse("OCR-Test.html", {"request": request})
 
+
 @app.post("/api/pdf/actual")
 async def pdf_actual(file: UploadFile = File(...)):
     with tracer.start_as_current_span("pdf_actual_endpoint") as span:
         span.set_attribute("http.request_type", "POST")
         span.set_attribute("endpoint.path", "/api/pdf/actual")
         span.set_attribute("file.name", file.filename)
-        
+
         if not file.filename.endswith(".pdf"):
             span.set_status(StatusCode.ERROR, description="Invalid file type")
             return JSONResponse({"error": "File must be a PDF"}, status_code=400)
@@ -215,20 +223,23 @@ async def pdf_actual(file: UploadFile = File(...)):
             with tracer.start_as_current_span("read_pdf_bytes"):
                 pdf_bytes = await file.read()
                 span.add_event("PDF bytes read")
-            
+
             with tracer.start_as_current_span("process_pdf_actual"):
                 highlighted_pdf, data = await HighlightParagraphs(pdf_bytes)
                 encoded_pdf = base64.b64encode(highlighted_pdf).decode("utf-8")
-                processed_data = {"message": "PDF processed successfully", "pdf_bytes": encoded_pdf, "data": data}
+                processed_data = {
+                    "message": "PDF processed successfully", "pdf_bytes": encoded_pdf, "data": data}
                 span.add_event("PDF processing complete")
 
             return JSONResponse(processed_data)
-        
+
         except Exception as e:
-            span.set_status(StatusCode.ERROR, description="PDF Actual Processing Failed")
+            span.set_status(StatusCode.ERROR,
+                            description="PDF Actual Processing Failed")
             span.record_exception(e)
             span.set_attribute("error.message", str(e))
             return JSONResponse({"error": "Internal server error during PDF processing", "msg": str(e)}, status_code=500)
+
 
 @app.post("/api/ocr/pdf")
 async def ocr_pdf(file: UploadFile = File(...)):
@@ -236,7 +247,7 @@ async def ocr_pdf(file: UploadFile = File(...)):
         span.set_attribute("http.request_type", "POST")
         span.set_attribute("endpoint.path", "/api/ocr/pdf")
         span.set_attribute("file.name", file.filename)
-        
+
         if not file.filename.endswith(".pdf"):
             span.set_status(StatusCode.ERROR, description="Invalid file type")
             return JSONResponse({"error": "File must be a PDF"}, status_code=400)
@@ -247,7 +258,7 @@ async def ocr_pdf(file: UploadFile = File(...)):
             with tracer.start_as_current_span("read_pdf_bytes"):
                 pdf_bytes = await file.read()
                 span.add_event("PDF bytes read")
-            
+
             with tracer.start_as_current_span("convert_pdf_to_images") as convert_span:
                 pages = convert_from_bytes(pdf_bytes)
                 span.set_attribute("page.count", len(pages))
@@ -258,23 +269,24 @@ async def ocr_pdf(file: UploadFile = File(...)):
             for i, page in enumerate(pages):
                 with tracer.start_as_current_span(f"process_page_{i + 1}") as page_span:
                     page_span.set_attribute("page.number", i + 1)
-                    
+
                     # Convert PIL Image to base64
                     with tracer.start_as_current_span("convert_image_to_base64"):
                         buffered = io.BytesIO()
                         page.save(buffered, format="PNG")
-                        img_base64 = base64.b64encode(buffered.getvalue()).decode()
+                        img_base64 = base64.b64encode(
+                            buffered.getvalue()).decode()
                         page_span.add_event("Image base64 encoded")
 
                     # OCR
                     with tracer.start_as_current_span("ocr_extraction"):
                         text = ocr_from_base64(img_base64)
                         page_span.add_event("OCR complete")
-                        
+
                     with tracer.start_as_current_span("split_text_to_chunks"):
                         tokens = split_paragraph(text, max_words=50)
                         page_span.set_attribute("chunk.count", len(tokens))
-                        
+
                     url = "http://localhost:3344/api/get"
                     final = []
                     for j, token in enumerate(tokens):
@@ -284,27 +296,33 @@ async def ocr_pdf(file: UploadFile = File(...)):
                             try:
                                 async with httpx.AsyncClient() as client:
                                     response = await client.post(url, json=payload)
-                                    chunk_span.set_attribute("http.status_code", response.status_code)
+                                    chunk_span.set_attribute(
+                                        "http.status_code", response.status_code)
 
                                     if response.status_code == 200:
                                         data = response.json()
                                         final.append(data)
-                                        chunk_span.add_event("Classification successful")
+                                        chunk_span.add_event(
+                                            "Classification successful")
                                     else:
-                                        chunk_span.set_status(StatusCode.ERROR, description=f"Classification API Error: {response.status_code}")
-                                        logger.error(f"Error fetching random number: {response.text}")
+                                        chunk_span.set_status(
+                                            StatusCode.ERROR, description=f"Classification API Error: {response.status_code}")
+                                        logger.error(
+                                            f"Error fetching random number: {response.text}")
                             except Exception as http_e:
-                                chunk_span.set_status(StatusCode.ERROR, description="Classification API Connection Failed")
+                                chunk_span.set_status(
+                                    StatusCode.ERROR, description="Classification API Connection Failed")
                                 chunk_span.record_exception(http_e)
 
+                    extracted_text_pages.append(
+                        {"page": i + 1, "text": text, "final": final})
 
-                    extracted_text_pages.append({"page": i + 1, "text": text, "final": final})
-            
             span.add_event("All pages processed")
             return JSONResponse({"pages": extracted_text_pages})
-        
+
         except Exception as e:
-            span.set_status(StatusCode.ERROR, description="OCR PDF Processing Failed")
+            span.set_status(StatusCode.ERROR,
+                            description="OCR PDF Processing Failed")
             span.record_exception(e)
             span.set_attribute("error.message", str(e))
             return JSONResponse({"error": "Internal server error during PDF OCR"}, status_code=500)
@@ -317,19 +335,19 @@ async def ocr_pdf_ws(websocket: WebSocket):
 
     with tracer.start_as_current_span("ws_ocr_pdf_endpoint") as span:
         span.set_attribute("websocket.type", "ocr_pdf")
-        
+
         try:
             # Receive binary PDF file from client
             pdf_bytes = await websocket.receive_bytes()
             logger.info("Received PDF via WebSocket")
             span.add_event("Received PDF bytes")
-            
+
             # Convert to images
             with tracer.start_as_current_span("ws_convert_pdf_to_images") as convert_span:
                 pages = convert_from_bytes(pdf_bytes)
                 span.set_attribute("page.count", len(pages))
                 convert_span.add_event(f"Converted to {len(pages)} images")
-            
+
             await websocket.send_text(json.dumps({
                 "total pages": len(pages)
             }))
@@ -337,19 +355,20 @@ async def ocr_pdf_ws(websocket: WebSocket):
             for i, page in enumerate(pages):
                 with tracer.start_as_current_span(f"ws_process_page_{i + 1}") as page_span:
                     page_span.set_attribute("page.number", i + 1)
-                    
+
                     # Convert PIL Image to base64
                     with tracer.start_as_current_span("ws_convert_image_to_base64"):
                         buffered = io.BytesIO()
                         page.save(buffered, format="PNG")
-                        img_base64 = base64.b64encode(buffered.getvalue()).decode()
+                        img_base64 = base64.b64encode(
+                            buffered.getvalue()).decode()
                         page_span.add_event("Image base64 encoded")
 
                     # OCR text extraction
                     with tracer.start_as_current_span("ws_ocr_extraction"):
                         text = ocr_from_base64(img_base64)
                         page_span.add_event("OCR complete")
-                        
+
                     with tracer.start_as_current_span("ws_split_text_to_chunks"):
                         tokens = split_paragraph(text, max_words=50)
                         page_span.set_attribute("chunk.count", len(tokens))
@@ -365,7 +384,8 @@ async def ocr_pdf_ws(websocket: WebSocket):
                             try:
                                 async with httpx.AsyncClient() as client:
                                     response = await client.post(url, json=payload)
-                                    chunk_span.set_attribute("http.status_code", response.status_code)
+                                    chunk_span.set_attribute(
+                                        "http.status_code", response.status_code)
 
                                 if response.status_code == 200:
                                     data = response.json()
@@ -375,24 +395,30 @@ async def ocr_pdf_ws(websocket: WebSocket):
                                     await websocket.send_text(json.dumps({
                                         "page": i + 1,
                                         "chunk": j + 1,
-                                        "text": token, # <--- MODIFIED: Added the actual text chunk
+                                        "text": token,  # <--- MODIFIED: Added the actual text chunk
                                         "data": data
                                     }))
-                                    chunk_span.add_event("Chunk classification sent to client")
-                                    logger.info(f"Page {i+1}, Chunk {j+1}: {data}")
+                                    chunk_span.add_event(
+                                        "Chunk classification sent to client")
+                                    logger.info(
+                                        f"Page {i+1}, Chunk {j+1}: {data}")
                                 else:
                                     await websocket.send_text(json.dumps({
                                         "page": i + 1,
                                         "chunk": j + 1,
                                         "error": response.text
                                     }))
-                                    chunk_span.set_status(StatusCode.ERROR, description="Classification API Failed")
-                                    logger.error(f"Error fetching random number: {response.text}")
+                                    chunk_span.set_status(
+                                        StatusCode.ERROR, description="Classification API Failed")
+                                    logger.error(
+                                        f"Error fetching random number: {response.text}")
                             except WebSocketDisconnect:
-                                logger.info("Client disconnected during chunk transmission")
-                                raise # Re-raise to be caught outside the loop
+                                logger.info(
+                                    "Client disconnected during chunk transmission")
+                                raise  # Re-raise to be caught outside the loop
                             except Exception as http_e:
-                                chunk_span.set_status(StatusCode.ERROR, description="Classification API Connection Failed")
+                                chunk_span.set_status(
+                                    StatusCode.ERROR, description="Classification API Connection Failed")
                                 chunk_span.record_exception(http_e)
                                 # Continue processing other chunks but log the error
 
@@ -404,7 +430,8 @@ async def ocr_pdf_ws(websocket: WebSocket):
                         }))
                         page_span.add_event("Page completed message sent")
                     except WebSocketDisconnect:
-                        logger.info("Client disconnected during page completion")
+                        logger.info(
+                            "Client disconnected during page completion")
                         raise
 
             await websocket.send_text(json.dumps({"status": "done"}))
@@ -413,21 +440,26 @@ async def ocr_pdf_ws(websocket: WebSocket):
 
         except WebSocketDisconnect:
             logger.warning("Client disconnected")
-            span.set_status(StatusCode.OK, description="Client Disconnected") # Not an error, just connection termination
+            # Not an error, just connection termination
+            span.set_status(StatusCode.OK, description="Client Disconnected")
         except Exception as e:
             logger.exception("Error during WebSocket OCR processing")
-            span.set_status(StatusCode.ERROR, description="WebSocket Processing Error")
+            span.set_status(StatusCode.ERROR,
+                            description="WebSocket Processing Error")
             span.record_exception(e)
             span.set_attribute("error.message", str(e))
             try:
                 await websocket.send_text(json.dumps({"error": str(e)}))
                 await websocket.close()
             except:
-                logger.error("Failed to send error message to disconnected client")
+                logger.error(
+                    "Failed to send error message to disconnected client")
+
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("Fin-PDF-High.html", {"request": request})
+
 
 @app.websocket("/ws/upload")
 async def websocket_upload(websocket: WebSocket):
@@ -437,7 +469,7 @@ async def websocket_upload(websocket: WebSocket):
         try:
             init_data = await websocket.receive_json()
             span.add_event("Received initial metadata")
-            
+
             folder_name = init_data.get("folderName", "default_project")
             folder_path = os.path.join(UPLOAD_DIR, folder_name)
             os.makedirs(folder_path, exist_ok=True)
@@ -458,7 +490,8 @@ async def websocket_upload(websocket: WebSocket):
                     with open(file_path, "ab") as f:
                         f.write(chunk)
                     received_bytes += len(chunk)
-                    percent = (received_bytes / total_bytes) * 50  # upload = 0-50%
+                    percent = (received_bytes / total_bytes) * \
+                        50  # upload = 0-50%
                     # Note: Sending progress messages is an IO operation, we'll keep it simple here.
 
             # Extraction using utility function
@@ -466,7 +499,8 @@ async def websocket_upload(websocket: WebSocket):
                 import asyncio
                 # Use a new span for the extraction progress updates
                 with tracer.start_as_current_span("zip_extraction_progress"):
-                    asyncio.create_task(websocket.send_json({"progress": 50 + pct/2, "status": status}))
+                    asyncio.create_task(websocket.send_json(
+                        {"progress": 50 + pct/2, "status": status}))
 
             with tracer.start_as_current_span("extract_zip_utility"):
                 extract_zip(file_path, folder_path, progress_callback=callback)
@@ -479,15 +513,48 @@ async def websocket_upload(websocket: WebSocket):
             span.set_status(StatusCode.OK, description="Client Disconnected")
         except Exception as e:
             logger.exception("Error during WebSocket file upload")
-            span.set_status(StatusCode.ERROR, description="File Upload/Extraction Failed")
+            span.set_status(StatusCode.ERROR,
+                            description="File Upload/Extraction Failed")
             span.record_exception(e)
             span.set_attribute("error.message", str(e))
 
 # Main Links
+
+
 @app.post("/api/login")
 async def login_user(payload: EmailInput):
     return await login_route(payload, users_collection, projects_collection)
 
+
+@app.post("/api/project/new")
+async def project_upload(
+    zip_file: UploadFile = File(..., description="The project ZIP archive."),
+    project_name: str = Form(
+        "default_project", description="The name of the project."),
+    current_user: Dict = Depends(get_current_user)
+):
+    # Start the top-level span for the entire request lifecycle
+    with tracer.start_as_current_span("project_new_endpoint") as span:
+        span.set_attribute("user.email", current_user.get("sub", "Error"))
+        span.set_attribute("user.id", current_user.get("id", "Error"))
+        span.set_attribute("project.name", project_name)
+        span.set_attribute("file.name", zip_file.filename)
+
+        # Delegate to the core logic function, passing the span
+    return await NewProject(zip_file, project_name, current_user, 
+                            users_collection, documents_collection, projects_collection)
+
+@app.get("/api/project")
+async def GetProject(current_user: Dict = Depends(get_current_user)):
+    with tracer.start_as_current_span("GetProject") as span:
+        span.set_attribute("user.email", current_user.get("sub", "Error"))
+        span.set_attribute("user.id", current_user.get("id", "Error"))
+
+    return await GetUserProjects(current_user, projects_collection, users_collection)
+
+@app.websocket("/ws/analyze")
+async def Analyser(websocket: WebSocket):
+   return await analyze_websocket(websocket)
 
 if __name__ == "__main__":
     import uvicorn

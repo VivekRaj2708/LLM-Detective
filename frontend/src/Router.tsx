@@ -3,8 +3,18 @@ import Home from "./Pages/Home";
 import Login from "./Pages/Login";
 import Dashboard from "./Pages/Dashboard";
 import NotFoundPage from "./Pages/404";
+import { loadUserFromCookie } from "./Store/Login";
+import { useDispatch } from "react-redux";
+import type { AppDispatch } from "./Store";
+import { useEffect } from "react";
+
 
 function Router() {
+  const dispatch = useDispatch<AppDispatch>();
+  dispatch(loadUserFromCookie());
+
+  useEffect(() => {}, [dispatch]);
+  
   return (
     <HashRouter>
       <Routes>
@@ -18,3 +28,4 @@ function Router() {
 }
 
 export default Router;
+

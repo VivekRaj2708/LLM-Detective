@@ -58,7 +58,7 @@ LLM Detective is a cutting-edge document analysis platform that combines advance
 ## 📁 Project Architecture
 
 ```
-LLM-Detective/
+LLM-Detective/.
 ├── backend
 │   ├── Auth
 │   │   ├── Config.py
@@ -67,11 +67,16 @@ LLM-Detective/
 │   ├── credentials.json
 │   ├── Database
 │   │   ├── Credentials.py
+│   │   ├── Document.py
 │   │   ├── Helper.py
 │   │   ├── Models.py
+│   │   ├── Project.py
 │   │   └── User.py
 │   ├── Main.py
 │   ├── requirements.txt
+│   ├── Routes
+│   │   ├── CONFIG.py
+│   │   └── ProjectManager.py
 │   ├── Run.sh
 │   ├── Socket
 │   │   └── Upload.py
@@ -92,21 +97,17 @@ LLM-Detective/
 │   │   ├── PDFConversion.py
 │   │   └── XMLConversion.py
 │   ├── uploads
-│   │   ├── gradient-rpa-illustration.zip
-│   │   ├── Hello
-│   │   │   └── uploaded.zip
-│   │   ├── Hello World
-│   │   │   └── uploaded.zip
-│   │   ├── Hi
-│   │   │   ├── S1.pdf
-│   │   │   ├── S2.pdf
-│   │   │   ├── S3.pdf
-│   │   │   └── S4.pdf
-│   │   ├── Hi.zip
-│   │   ├── S1.pdf
-│   │   ├── S4.pdf
-│   │   └── S4.xml
+│   │   ├── aa5b7df0-2afb-49d4-b921-b1aca8418fc5
+│   │   │   ├── results
+│   │   │   └── uploads
+│   │   │       └── Hello1
+│   │   │           ├── S1.pdf
+│   │   │           ├── S2.pdf
+│   │   │           ├── S3.pdf
+│   │   │           └── S4.pdf
+│   │   └── Test
 │   └── Utils
+│       ├── CONFIG.py
 │       ├── File.py
 │       ├── Group.py
 │       ├── Para.py
@@ -114,6 +115,14 @@ LLM-Detective/
 │       ├── Request.py
 │       └── Server.py
 ├── directory_structure.txt
+├── docs
+│   ├── Dashboard.png
+│   ├── Inference.png
+│   ├── Login.png
+│   ├── log.png
+│   ├── New Project.png
+│   ├── OAUTH2.png
+│   └── workflow.tex
 ├── frontend
 │   ├── eslint.config.js
 │   ├── index.html
@@ -158,6 +167,7 @@ LLM-Detective/
 │   │   ├── Store.ts
 │   │   ├── Urls.ts
 │   │   └── Utils
+│   │       ├── DataConversion.ts
 │   │       ├── GoogleAuth.ts
 │   │       └── TypeCast.ts
 │   ├── tsconfig.app.json
@@ -171,17 +181,76 @@ LLM-Detective/
 │   │   ├── best_tinybert.pth
 │   │   └── tinybert.py
 │   ├── CONFIG.py
+│   ├── Dataset
+│   │   └── converted.json
 │   ├── DistilBERT
 │   │   ├── BERT.ipynb
 │   │   └── BERT.py
+│   ├── LogisticRegresion
+│   │   ├── label_encoder_model.pkl
+│   │   ├── label_encoder_type.pkl
+│   │   ├── logistic_regression_model.pkl
+│   │   └── tfidf_vectorizer.pkl
+│   ├── LogisticRegression
+│   ├── ml_algos final.ipynb
 │   ├── requirements.txt
-│   └── Templates
-│       └── Test.html
+│   ├── RoBERTa
+│   │   ├── assets
+│   │   │   ├── data_generated_table.png
+│   │   │   ├── Interface1.png
+│   │   │   └── Interface2.png
+│   │   ├── checkpoint.pt
+│   │   ├── job_script.sh
+│   │   ├── pipeline
+│   │   │   ├── dataset.py
+│   │   │   ├── jsonl_convert.ipynb
+│   │   │   ├── main.py
+│   │   │   ├── model_pipeline.py
+│   │   │   ├── outputs
+│   │   │   │   └── tokenized_FacebookAI
+│   │   │   │       └── roberta-base
+│   │   │   │           ├── dataset_dict.json
+│   │   │   │           ├── train
+│   │   │   │           │   ├── data-00000-of-00001.arrow
+│   │   │   │           │   ├── dataset_info.json
+│   │   │   │           │   └── state.json
+│   │   │   │           └── val
+│   │   │   │               ├── data-00000-of-00001.arrow
+│   │   │   │               ├── dataset_info.json
+│   │   │   │               └── state.json
+│   │   │   └── results
+│   │   ├── README.md
+│   │   └── script
+│   │       ├── llm-detectaive.py
+│   │       ├── samples_converted.jsonl
+│   │       ├── samples.json
+│   │       └── samples.jsonl
+│   ├── Templates
+│   │   └── Test.html
+│   └── TinyBERT
+│       ├── config.json
+│       ├── model.safetensors
+│       └── TinyBERT.py
 ├── README.md
+├── README.md.bak
 └── scripts
-    └── GenerateFileTree.sh
+    ├── datacreation_pipeline
+    │   ├── llama-7b
+    │   │   ├── run_humanized1.py
+    │   │   ├── run_inference1.py
+    │   │   └── run_llama31_job.sh
+    │   ├── llama-7b_30k
+    │   │   ├── run_inference2.py
+    │   │   └── run_llama32_job.sh
+    │   └── llama-7b_copy
+    │       ├── run_humanized.py
+    │       ├── run_inference3.py
+    │       └── run_llama33_job.sh
+    ├── GenerateFileTree.sh
+    └── UpdateREADMeFileTree.sh
 
-29 directories, 93 files
+50 directories, 140 files
+
 ```
 
 ## � Quick Start Guide

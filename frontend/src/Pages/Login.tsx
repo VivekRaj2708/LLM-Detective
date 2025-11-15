@@ -4,7 +4,7 @@ import logo from "../assets/logo-white.png";
 import backdrop from "../assets/IITGN-evening.jpg";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../Store";
-import { login } from "../Store/Login";
+import { loginUser } from "../Store/Login";
 import { useNavigate } from "react-router-dom";
 import { LOGIN_API_URL } from "../Urls";
 import { setUser } from "../Store/User";
@@ -53,7 +53,7 @@ export default function LoginPage() {
         dispatch(setUser(loginResponseData.user));
         dispatch(setProjects(loginResponseData.projects));
         dispatch(
-          login({
+          loginUser({
             name: user.name || "User",
             email: user.email,
             JWTToken: loginResponseData.token,
