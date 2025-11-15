@@ -17,7 +17,7 @@ based on text input and a categorical 'type' feature.
 
 # --- Configuration & Hyperparameters ---
 # Use a smaller transformer for laptop-friendly runs. DistilBERT is compact and fast.
-MODEL_NAME = "" # <-- Model to be used, e.g., "distilbert-base-uncased"
+MODEL_NAME = "prajjwal1/bert-tiny" # <-- Model to be used, e.g., "distilbert-base-uncased"
 TRAIN_FILE = "train.jsonl"  # <-- Your training data file
 VAL_FILE = "val.jsonl"      # <-- Your validation data file
 BEST_ACCURACY_THRESHOLD = 0.8  # Minimum accuracy to save the model
@@ -496,4 +496,5 @@ def main():
             print(f"\nTraining finished. Validation accuracy {val_model_acc:.4f} did not reach threshold. Model not saved.")
 
 # Call the main function directly
-main()
+if __name__ == "__main__":
+    main()

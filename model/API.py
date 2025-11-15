@@ -9,7 +9,7 @@ from transformers import AutoTokenizer
 from CONFIG import MODEL_NAME, MODEL_PATH
 # from LogisticRegression.LR import Load
 import numpy as np
-from BERT.tinybert import DANN_Text_Detector, TYPE_TO_LABEL, NUM_MODEL_CLASSES
+from BERT.fourclassmodel import DANN_Text_Detector, TYPE_TO_LABEL, NUM_MODEL_CLASSES
 from pathlib import Path
 # from RoBERTa.script.llm_detectaive import load_model
 from TinyBERT.TinyBERT import predict as tinybert_predict

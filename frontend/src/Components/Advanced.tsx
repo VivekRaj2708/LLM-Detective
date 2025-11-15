@@ -25,7 +25,8 @@ ChartJS.register(ArcElement, ChartTooltip, Legend);
 
 // --- TYPE DEFINITIONS & CONSTANTS ---
 type ColorKey = 0 | 1 | 2 | 3 | 4;
-type RawChunk = [string, ColorKey];
+type ModelKey = 0 | 1 | 2 | 3;
+type RawChunk = [string, ColorKey, ModelKey];
 
 interface ChunkCounts {
   0: number;
@@ -46,7 +47,7 @@ const API_ENDPOINT = "http://localhost:5000/api/pdf/actual";
 // CONVERTED: Color map using hex codes derived from the user's requested RGB tuples
 const colorMap: Record<ColorKey, string> = {
   0: "#99FF99", // (1.0, 0.6, 0.6) - Light Green - Humanise
-  1: "#9999FF", // (0.6, 1.0, 0.6) - Light Blue - Polished 
+  1: "#9999FF", // (0.6, 1.0, 0.6) - Light Blue - Polished
   2: "#FF9999", // (0.6, 0.6, 1.0) - Light Red - AI
   3: "#FFFF99", // (1.0, 1.0, 0.6) - Light Yellow - Humanised
   4: "#fff", // (1.0, 0.8, 0.6) - Light Orange - Undetermined
@@ -122,7 +123,29 @@ export default function Advanced() {
   const [status, setStatus] = useState("Awaiting PDF for analysis.");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isChartOpen, setIsChartOpen] = useState(true);
+  const [modelKeys, setModelKeys] = useState<
+    Record<ColorKey, Record<ModelKey, number>>
+  >({
+    0: { 0: 0, 1: 0, 2: 0, 3: 0 },
+    1: { 0: 0, 1: 0, 2: 0, 3: 0 },
+    2: { 0: 0, 1: 0, 2: 0, 3: 0 },
+    3: { 0: 0, 1: 0, 2: 0, 3: 0 },
+    4: { 0: 0, 1: 0, 2: 0, 3: 0 },
+  });
 
+  const modelKeyNames: Record<ModelKey, string> = {
+    0: "LLama",
+    1: "Mistal",
+    2: "Aya",
+    3: "Falcon",
+  };
+  const getMaxModelKeyName = (colorKey: ColorKey): string => {
+    const models = modelKeys[colorKey];
+    const modelKey = Number(
+      Object.entries(models).reduce((a, b) => (a[1] > b[1] ? a : b))[0]
+    ) as ModelKey;
+    return modelKeyNames[modelKey];
+  };
   // API Results
   const [processedPdfBase64, setProcessedPdfBase64] = useState<string | null>(
     null
@@ -279,13 +302,29 @@ export default function Advanced() {
       // Process Classification Data (Weighted by text length)
       let counts: ChunkCounts = { ...initialChunkCounts };
       for (const item of data as RawChunk[]) {
-        const [text, classKey] = item;
+        const [text, classKey, _] = item;
         const weight = text.length;
         if (classKey in colorMap) {
           counts[classKey as ColorKey] += weight;
           counts.total += weight;
         }
       }
+
+      let newModelKeys: Record<ColorKey, Record<ModelKey, number>> = {
+        ...modelKeys,
+      };
+      for (const item of data as RawChunk[]) {
+        const [text, classKey, modelKey] = item;
+        const weight = text.length;
+
+        if (classKey in colorMap) {
+          if (classKey === 0 || classKey === 4) continue; // Skip Human and Undetermined
+          newModelKeys[classKey as ColorKey][modelKey] += weight;
+          counts.total += weight;
+        }
+      }
+      setModelKeys(newModelKeys);
+      console.log(newModelKeys);
 
       // Set Results
       setProcessedPdfBase64(pdf_bytes);
@@ -631,7 +670,7 @@ export default function Advanced() {
           </Tooltip>
 
           {/* Pie Chart Area */}
-          <Box sx={{ height: 280, mb: 4, position: "relative" }}>
+          <Box sx={{ height: 240, mb: 4, position: "relative" }}>
             {chunkCounts.total > 0 ? (
               //@ts-expect-error
               <Pie data={chartData} options={chartOptions} />
@@ -670,40 +709,55 @@ export default function Advanced() {
               const value = chunkCounts[key];
 
               return (
-                <Box
-                  key={key}
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    mb: 1.5,
-                    fontSize: "15px",
-                  }}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <span
-                      style={{
-                        background: color,
-                        width: "16px",
-                        height: "16px",
-                        borderRadius: "4px",
-                        marginRight: "10px",
-                        boxShadow: `0 0 5px ${color}80`,
-                      }}
-                    ></span>
+                <Box sx={{ mb: 1.5 }} key={key}>
+                  <Box
+                    key={key}
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      fontSize: "15px",
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      <span
+                        style={{
+                          background: color,
+                          width: "16px",
+                          height: "16px",
+                          borderRadius: "4px",
+                          marginRight: "10px",
+                          boxShadow: `0 0 5px ${color}80`,
+                        }}
+                      ></span>
+                      <Typography
+                        component="span"
+                        sx={{ color: TEXT_COLOR_MUTED, fontWeight: 500 }}
+                      >
+                        {name}
+                      </Typography>
+                    </Box>
                     <Typography
                       component="span"
-                      sx={{ color: TEXT_COLOR_MUTED, fontWeight: 500 }}
+                      sx={{ color: color, fontWeight: 800, textAlign: "right" }}
                     >
-                      {name}
+                      {value.toLocaleString()} ({percentageData[key]}%)
                     </Typography>
                   </Box>
-                  <Typography
-                    component="span"
-                    sx={{ color: color, fontWeight: 800, textAlign: "right" }}
-                  >
-                    {value.toLocaleString()} ({percentageData[key]}%)
-                  </Typography>
+                  {name == "Machine Polished" ||
+                  name == "AI Generated" ||
+                  name == "Machine Humanised" ? (
+                    <Typography
+                      component="span"
+                      sx={{
+                        color: TEXT_COLOR_MUTED,
+                        fontWeight: 500,
+                        ml: 3.25,
+                      }}
+                    >
+                      Detected Model: {getMaxModelKeyName(key)}
+                    </Typography>
+                  ) : null}
                 </Box>
               );
             })}

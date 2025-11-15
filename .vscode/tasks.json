@@ -15,7 +15,7 @@
     {
       "label": "Run Model API",
       "type": "shell",
-      "command": "bash -c 'source /home/vivek/NLP/.venv/bin/activate && cd ./model && uvicorn API:app --reload --host 127.0.0.1 --port 5000 --log-level debug'",
+      "command": "bash -c 'source /home/vivek/NLP/.venv/bin/activate && cd ./model && uvicorn API:app --reload --host 127.0.0.1 --port 3344 --log-level debug'",
       "presentation": {
         "panel": "new",
         "clear": true,
@@ -26,7 +26,7 @@
     {
       "label": "Run Backend",
       "type": "shell",
-      "command": "bash -c 'source /home/vivek/NLP/.venv/bin/activate && cd ./backend && uvicorn Main:app --reload --host 127.0.0.1 --port 8000 --log-level debug'",
+      "command": "bash -c 'source /home/vivek/NLP/.venv/bin/activate && cd ./backend && uvicorn Main:app --reload --host 127.0.0.1 --port 5000 --log-level debug'",
       "presentation": {
         "panel": "new",
         "clear": true,

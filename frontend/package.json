@@ -23,6 +23,7 @@
     "crypto-js": "^4.2.0",
     "firebase": "^12.5.0",
     "framer-motion": "^12.23.24",
+    "lucide-react": "^0.553.0",
     "react": "^19.1.1",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.2.0",

@@ -7,6 +7,8 @@ import { loadUserFromCookie } from "./Store/Login";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "./Store";
 import { useEffect } from "react";
+import LicensePage from "./Pages/Terms";
+import Team from "./Pages/Team";
 
 
 function Router() {
@@ -21,6 +23,8 @@ function Router() {
         <Route index element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/terms" element={<LicensePage />} />
+         <Route path="/team" element={<Team />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </HashRouter>
